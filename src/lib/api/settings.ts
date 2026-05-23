@@ -8,6 +8,16 @@ export type Settings = {
   phone?: string | null
   email?: string | null
   address?: string | null
+  
+  // Lote 2 & 4
+  bank_name?: string | null
+  bank_account_name?: string | null
+  bank_pix?: string | null
+  bank_agency?: string | null
+  bank_account?: string | null
+  primary_color?: string | null
+  logo_url?: string | null
+
   updated_at?: string
 }
 

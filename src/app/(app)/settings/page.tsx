@@ -263,6 +263,53 @@ export default function SettingsPage() {
                     />
                   </div>
                 </div>
+                
+                <h3 className="font-bold text-gray-800 border-b pb-2 mt-6 mb-4">Dados Bancários (Aparecem nos Orçamentos)</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="bank_name">Banco</Label>
+                    <Input 
+                      id="bank_name" 
+                      value={settings.bank_name || ''} 
+                      onChange={e => setSettingsData({...settings, bank_name: e.target.value})} 
+                      placeholder="Ex: Nubank, Inter..."
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="bank_account_name">Titular / Favorecido</Label>
+                    <Input 
+                      id="bank_account_name" 
+                      value={settings.bank_account_name || ''} 
+                      onChange={e => setSettingsData({...settings, bank_account_name: e.target.value})} 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="bank_pix">Chave PIX</Label>
+                    <Input 
+                      id="bank_pix" 
+                      value={settings.bank_pix || ''} 
+                      onChange={e => setSettingsData({...settings, bank_pix: e.target.value})} 
+                    />
+                  </div>
+                  <div className="space-y-2 flex gap-4">
+                    <div className="flex-1">
+                      <Label htmlFor="bank_agency">Agência</Label>
+                      <Input 
+                        id="bank_agency" 
+                        value={settings.bank_agency || ''} 
+                        onChange={e => setSettingsData({...settings, bank_agency: e.target.value})} 
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <Label htmlFor="bank_account">Conta</Label>
+                      <Input 
+                        id="bank_account" 
+                        value={settings.bank_account || ''} 
+                        onChange={e => setSettingsData({...settings, bank_account: e.target.value})} 
+                      />
+                    </div>
+                  </div>
+                </div>
               </CardContent>
               <CardFooter className="flex justify-end">
                 <Button type="submit" className="bg-[#5C3D8F] hover:bg-[#4a3173] text-white" disabled={savingSettings}>

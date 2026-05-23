@@ -6,6 +6,7 @@ import { Order, OrderItem, createOrder, updateOrder } from '@/lib/api/orders'
 import { getClients } from '@/lib/api/clients'
 import { getCompanies } from '@/lib/api/companies'
 import { getActiveProducts, type Product } from '@/lib/api/products'
+import { getShippingPartners, type ShippingPartner } from '@/lib/api/shipping'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -28,6 +29,7 @@ export function OrderForm({ initialData }: OrderFormProps) {
   const [clients, setClients] = useState<any[]>([])
   const [companies, setCompanies] = useState<any[]>([])
   const [products, setProducts] = useState<Product[]>([])
+  const [shippingPartners, setShippingPartners] = useState<ShippingPartner[]>([])
 
   // Formulário Principal
   const [formData, setFormData] = useState<Partial<Order>>(
@@ -41,6 +43,13 @@ export function OrderForm({ initialData }: OrderFormProps) {
       deadline: '',
       discount_amount: 0,
       shipping_cost: 0,
+      credit_installments: 1,
+      credit_fee: 0,
+      entry_date: '',
+      final_payment_date: '',
+      delivery_date: '',
+      shipping_partner_id: null,
+      out_of_state_shipping: false,
       total_amount: 0
     }
   )
@@ -53,14 +62,16 @@ export function OrderForm({ initialData }: OrderFormProps) {
   useEffect(() => {
     async function loadSupportData() {
       try {
-        const [cliData, compData, prodData] = await Promise.all([
+        const [cliData, compData, prodData, shipData] = await Promise.all([
           getClients(),
           getCompanies(),
-          getActiveProducts()
+          getActiveProducts(),
+          getShippingPartners()
         ])
         setClients(cliData || [])
         setCompanies(compData || [])
         setProducts(prodData || [])
+        setShippingPartners(shipData || [])
       } catch (err) {
         console.error('Error loading support data', err)
       } finally {
@@ -75,13 +86,19 @@ export function OrderForm({ initialData }: OrderFormProps) {
     const itemsTotal = items.reduce((acc, item) => acc + Number(item.total_price || 0), 0)
     const discount = Number(formData.discount_amount || 0)
     const shipping = Number(formData.shipping_cost || 0)
+    const creditFee = Number(formData.credit_fee || 0)
     
-    const grandTotal = itemsTotal - discount + shipping
+    const grandTotal = itemsTotal - discount + shipping + creditFee
     setFormData(prev => ({ ...prev, total_amount: grandTotal > 0 ? grandTotal : 0 }))
-  }, [items, formData.discount_amount, formData.shipping_cost])
+  }, [items, formData.discount_amount, formData.shipping_cost, formData.credit_fee])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value })
+    const { name, value, type } = e.target as any
+    if (type === 'checkbox') {
+      setFormData({ ...formData, [name]: (e.target as HTMLInputElement).checked })
+    } else {
+      setFormData({ ...formData, [name]: value })
+    }
   }
 
   const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -261,11 +278,21 @@ export function OrderForm({ initialData }: OrderFormProps) {
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Prazo / Entrega</Label>
+                  <Label>Prazo Previsto</Label>
                   <Input 
                     type="date" 
                     name="deadline" 
                     value={formData.deadline ? formData.deadline.substring(0, 10) : ''} 
+                    onChange={handleChange}
+                    className="bg-white"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Entrega Realizada</Label>
+                  <Input 
+                    type="date" 
+                    name="delivery_date" 
+                    value={formData.delivery_date ? formData.delivery_date.substring(0, 10) : ''} 
                     onChange={handleChange}
                     className="bg-white"
                   />
@@ -298,7 +325,52 @@ export function OrderForm({ initialData }: OrderFormProps) {
                     <option value="Pago">Pago</option>
                   </select>
                 </div>
+                <div className="space-y-2">
+                  <Label>Data Entrada (Ex: 50%)</Label>
+                  <Input 
+                    type="date" 
+                    name="entry_date" 
+                    value={formData.entry_date ? formData.entry_date.substring(0, 10) : ''} 
+                    onChange={handleChange}
+                    className="bg-white"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Data Pagto Final</Label>
+                  <Input 
+                    type="date" 
+                    name="final_payment_date" 
+                    value={formData.final_payment_date ? formData.final_payment_date.substring(0, 10) : ''} 
+                    onChange={handleChange}
+                    className="bg-white"
+                  />
+                </div>
               </div>
+
+              {formData.payment_method?.includes('Cartão') && (
+                <div className="mt-4 p-3 border border-[#5C3D8F]/20 bg-[#5C3D8F]/5 rounded-md grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Quantidade de Parcelas</Label>
+                    <Input 
+                      type="number" min="1" max="24"
+                      name="credit_installments"
+                      value={formData.credit_installments || 1}
+                      onChange={handleNumberChange}
+                      className="bg-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Taxa do Cartão (R$)</Label>
+                    <Input 
+                      type="number" step="0.01" min="0"
+                      name="credit_fee"
+                      value={formData.credit_fee || 0}
+                      onChange={handleNumberChange}
+                      className="bg-white"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -412,14 +484,49 @@ export function OrderForm({ initialData }: OrderFormProps) {
                   className="w-24 h-8 text-right bg-white"
                 />
               </div>
-              <div className="flex justify-between items-center text-sm">
-                <span>Frete (+):</span>
-                <Input 
-                  type="number" name="shipping_cost" step="0.01"
-                  value={formData.shipping_cost} onChange={handleNumberChange}
-                  className="w-24 h-8 text-right bg-white"
-                />
+
+              <div className="border-t pt-3 pb-2 mt-2 space-y-3">
+                <div className="text-xs font-semibold uppercase text-muted-foreground">Configurações de Frete</div>
+                <div className="flex gap-2 items-center">
+                  <select
+                    value={formData.shipping_partner_id || 'none'}
+                    onChange={(e) => handleSelectChange('shipping_partner_id', e.target.value)}
+                    className="flex h-8 flex-1 rounded-md border border-input bg-white px-3 py-1 text-xs shadow-sm"
+                  >
+                    <option value="none">Retirada / Sem frete especial</option>
+                    {shippingPartners.map(p => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                  <div className="flex items-center gap-1.5 whitespace-nowrap">
+                    <input 
+                      type="checkbox" 
+                      name="out_of_state_shipping" 
+                      id="out_of_state"
+                      checked={formData.out_of_state_shipping || false} 
+                      onChange={handleChange}
+                      className="rounded border-gray-300"
+                    />
+                    <Label htmlFor="out_of_state" className="text-xs cursor-pointer">Outro estado/cidade</Label>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span>Valor do Frete (+):</span>
+                  <Input 
+                    type="number" name="shipping_cost" step="0.01"
+                    value={formData.shipping_cost} onChange={handleNumberChange}
+                    className="w-24 h-8 text-right bg-white"
+                  />
+                </div>
               </div>
+
+              {Number(formData.credit_fee) > 0 && (
+                <div className="flex justify-between items-center text-sm text-red-600">
+                  <span>Taxas Cartão (+):</span>
+                  <span>R$ {Number(formData.credit_fee || 0).toFixed(2)}</span>
+                </div>
+              )}
+              
               <div className="pt-3 border-t flex justify-between items-center font-bold text-xl text-[#5C3D8F]">
                 <span>TOTAL:</span>
                 <span>R$ {Number(formData.total_amount || 0).toFixed(2)}</span>

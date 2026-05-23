@@ -2,19 +2,25 @@
 
 import { useEffect, useState, use } from 'react'
 import { getOrder, type Order } from '@/lib/api/orders'
+import { getSettings, type Settings } from '@/lib/api/settings'
 import { Printer, MapPin, Phone, Building } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 export default function OrderPdfPage({ params }: { params: Promise<{ id: string }> }) {
   const [order, setOrder] = useState<Order | null>(null)
+  const [settings, setSettings] = useState<Settings | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function load() {
       try {
         const resolvedParams = await params
-        const data = await getOrder(resolvedParams.id)
+        const [data, settingsData] = await Promise.all([
+          getOrder(resolvedParams.id),
+          getSettings()
+        ])
         setOrder(data)
+        setSettings(settingsData)
       } catch (error) {
         console.error(error)
       } finally {
@@ -138,6 +144,12 @@ export default function OrderPdfPage({ params }: { params: Promise<{ id: string 
                 <span>+ R$ {Number(order.shipping_cost).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
               </div>
             )}
+            {order.credit_fee > 0 && (
+              <div className="flex justify-between text-red-500">
+                <span>Taxas Cartão:</span>
+                <span>+ R$ {Number(order.credit_fee).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+              </div>
+            )}
             <div className="flex justify-between text-xl font-bold text-[#5C3D8F] pt-2 border-t-2 border-[#5C3D8F]">
               <span>TOTAL:</span>
               <span>R$ {Number(order.total_amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
@@ -146,13 +158,32 @@ export default function OrderPdfPage({ params }: { params: Promise<{ id: string 
         </div>
 
         {/* Rodapé / Termos */}
-        <div className="text-sm text-gray-500 border-t border-gray-200 pt-6">
-          <h4 className="font-bold text-gray-800 mb-2">CONDIÇÕES GERAIS E OBSERVAÇÕES</h4>
-          <p className="mb-2"><strong>Pagamento:</strong> {order.payment_method || 'A combinar'} - Status: {order.payment_status}</p>
-          {order.notes ? (
-            <p className="whitespace-pre-wrap italic">{order.notes}</p>
-          ) : (
-            <p>Este orçamento tem validade de 7 dias úteis. A produção inicia apenas após a confirmação do pagamento e aprovação das artes.</p>
+        <div className="text-sm text-gray-500 border-t border-gray-200 pt-6 flex flex-col md:flex-row gap-8">
+          <div className="flex-1">
+            <h4 className="font-bold text-gray-800 mb-2">CONDIÇÕES GERAIS E OBSERVAÇÕES</h4>
+            <p className="mb-2"><strong>Pagamento:</strong> {order.payment_method || 'A combinar'} - Status: {order.payment_status}</p>
+            {order.payment_method?.includes('Cartão') && order.credit_installments && (
+              <p className="mb-2"><strong>Parcelamento:</strong> {order.credit_installments}x no Cartão</p>
+            )}
+            {order.entry_date && <p className="mb-1"><strong>Data da Entrada:</strong> {new Date(order.entry_date).toLocaleDateString('pt-BR')} (50% ou conf. combinado)</p>}
+            {order.final_payment_date && <p className="mb-2"><strong>Pagamento Final:</strong> {new Date(order.final_payment_date).toLocaleDateString('pt-BR')}</p>}
+            
+            {order.notes ? (
+              <p className="whitespace-pre-wrap italic mt-2">{order.notes}</p>
+            ) : (
+              <p className="mt-2">Este orçamento tem validade de 7 dias úteis. A produção inicia apenas após a confirmação do pagamento e aprovação das artes.</p>
+            )}
+          </div>
+          
+          {settings && (settings.bank_name || settings.bank_pix) && (
+            <div className="w-full md:w-1/3 bg-gray-50 p-4 rounded-md border border-gray-200 text-xs">
+              <h4 className="font-bold text-gray-800 mb-2 border-b pb-1">DADOS BANCÁRIOS</h4>
+              {settings.bank_name && <p><strong>Banco:</strong> {settings.bank_name}</p>}
+              {settings.bank_account_name && <p><strong>Titular:</strong> {settings.bank_account_name}</p>}
+              {settings.bank_agency && <p><strong>Agência:</strong> {settings.bank_agency}</p>}
+              {settings.bank_account && <p><strong>Conta:</strong> {settings.bank_account}</p>}
+              {settings.bank_pix && <p className="mt-2 text-green-700 bg-green-50 p-1 rounded font-bold border border-green-200 text-center">PIX: {settings.bank_pix}</p>}
+            </div>
           )}
         </div>
         

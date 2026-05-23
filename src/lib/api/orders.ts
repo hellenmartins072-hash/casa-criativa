@@ -30,6 +30,16 @@ export type Order = {
   payment_status?: string
   notes?: string | null
   deadline?: string | null
+  
+  // Novos campos do Lote 2
+  credit_installments?: number
+  credit_fee?: number
+  entry_date?: string | null
+  final_payment_date?: string | null
+  delivery_date?: string | null
+  shipping_partner_id?: string | null
+  out_of_state_shipping?: boolean
+
   created_at: string
   
   // Relações que vamos puxar do banco
@@ -94,7 +104,16 @@ export async function createOrder(orderData: Partial<Order>, items: OrderItem[])
     payment_method: orderData.payment_method || null,
     payment_status: orderData.payment_status || 'Pendente',
     notes: orderData.notes || '',
-    deadline: orderData.deadline || null
+    deadline: orderData.deadline || null,
+    
+    // Novos campos do Lote 2
+    credit_installments: orderData.credit_installments || 1,
+    credit_fee: orderData.credit_fee || 0,
+    entry_date: orderData.entry_date || null,
+    final_payment_date: orderData.final_payment_date || null,
+    delivery_date: orderData.delivery_date || null,
+    shipping_partner_id: orderData.shipping_partner_id || null,
+    out_of_state_shipping: orderData.out_of_state_shipping || false
   }
 
   if (orderData.client_id) payload.client_id = orderData.client_id
@@ -168,7 +187,16 @@ export async function updateOrder(id: string, orderData: Partial<Order>, items: 
     payment_method: orderData.payment_method,
     payment_status: orderData.payment_status,
     notes: orderData.notes,
-    deadline: orderData.deadline
+    deadline: orderData.deadline,
+    
+    // Novos campos do Lote 2
+    credit_installments: orderData.credit_installments,
+    credit_fee: orderData.credit_fee,
+    entry_date: orderData.entry_date,
+    final_payment_date: orderData.final_payment_date,
+    delivery_date: orderData.delivery_date,
+    shipping_partner_id: orderData.shipping_partner_id,
+    out_of_state_shipping: orderData.out_of_state_shipping
   }
 
   if (orderData.client_id !== undefined) payload.client_id = orderData.client_id
