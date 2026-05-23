@@ -1,4 +1,5 @@
-import { LayoutDashboard, Users, Store, Box, ShoppingCart, DollarSign, Settings, Building, Truck, Package, BookOpen } from "lucide-react"
+import { LayoutDashboard, Users, Store, Box, ShoppingCart, DollarSign, Settings, Building, Truck, Package, BookOpen, LogOut } from "lucide-react"
+import { logout } from "@/app/login/actions"
 
 import {
   Sidebar,
@@ -100,8 +101,13 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="p-4">
-        {/* User profile could go here */}
+      <SidebarFooter className="p-4 flex flex-col gap-2">
+        <form action={logout}>
+          <button type="submit" className="w-full flex items-center gap-2 px-2 py-1.5 text-sm font-medium text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50 rounded-md transition-colors text-left">
+            <LogOut className="w-4 h-4" />
+            <span>Sair do Sistema</span>
+          </button>
+        </form>
         <div className="text-xs text-muted-foreground text-center">
           v1.0.0
         </div>
