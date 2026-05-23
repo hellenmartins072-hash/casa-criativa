@@ -58,14 +58,18 @@ export default function OrderPdfPage({ params }: { params: Promise<{ id: string 
       <div className="max-w-4xl mx-auto border border-gray-200 p-8 print:border-none print:p-0">
         
         {/* Cabeçalho */}
-        <div className="flex justify-between items-start border-b-2 border-[#5C3D8F] pb-6 mb-6">
+        <div className="flex justify-between items-start border-b-2 pb-6 mb-6" style={{ borderColor: settings?.primary_color || '#5C3D8F' }}>
           <div>
-            <h1 className="text-3xl font-black text-[#5C3D8F] mb-1">CASA CRIATIVA</h1>
-            <p className="text-gray-500 text-sm">Presentes Corporativos e Personalizados</p>
-            <div className="mt-4 space-y-1 text-sm text-gray-600">
-              <p className="flex items-center"><Building className="w-4 h-4 mr-2" /> CNPJ: 00.000.000/0001-00</p>
-              <p className="flex items-center"><MapPin className="w-4 h-4 mr-2" /> Rua das Flores, 123 - Centro</p>
-              <p className="flex items-center"><Phone className="w-4 h-4 mr-2" /> (11) 99999-9999</p>
+            {settings?.logo_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={settings.logo_url} alt="Logo" className="max-h-20 w-auto object-contain mb-2" />
+            ) : (
+              <h1 className="text-3xl font-black mb-1" style={{ color: settings?.primary_color || '#5C3D8F' }}>{settings?.business_name || 'CASA CRIATIVA'}</h1>
+            )}
+            <div className="mt-2 space-y-1 text-sm text-gray-600">
+              {settings?.document_number && <p className="flex items-center"><Building className="w-4 h-4 mr-2" /> CNPJ: {settings.document_number}</p>}
+              {settings?.address && <p className="flex items-center"><MapPin className="w-4 h-4 mr-2" /> {settings.address}</p>}
+              {settings?.phone && <p className="flex items-center"><Phone className="w-4 h-4 mr-2" /> {settings.phone}</p>}
             </div>
           </div>
           <div className="text-right">
@@ -85,7 +89,7 @@ export default function OrderPdfPage({ params }: { params: Promise<{ id: string 
         {/* Dados do Cliente */}
         <div className="bg-gray-50 p-4 rounded-md mb-8 border border-gray-100">
           <h3 className="font-bold text-gray-800 border-b pb-2 mb-2">DADOS DO CLIENTE</h3>
-          <p className="text-lg font-semibold text-[#5C3D8F]">{clientName}</p>
+          <p className="text-lg font-semibold" style={{ color: settings?.primary_color || '#5C3D8F' }}>{clientName}</p>
           <div className="grid grid-cols-2 gap-4 mt-2 text-sm text-gray-600">
             {order.clients?.whatsapp && <p><strong>WhatsApp:</strong> {order.clients.whatsapp}</p>}
             {order.clients?.email && <p><strong>E-mail:</strong> {order.clients.email}</p>}
@@ -98,7 +102,7 @@ export default function OrderPdfPage({ params }: { params: Promise<{ id: string 
         <div className="mb-8">
           <table className="w-full text-sm border-collapse">
             <thead>
-              <tr className="bg-[#5C3D8F] text-white">
+              <tr className="text-white" style={{ backgroundColor: settings?.primary_color || '#5C3D8F' }}>
                 <th className="p-3 text-left font-semibold">Qtd</th>
                 <th className="p-3 text-left font-semibold">Descrição do Item</th>
                 <th className="p-3 text-right font-semibold">Valor Unit.</th>
@@ -150,7 +154,7 @@ export default function OrderPdfPage({ params }: { params: Promise<{ id: string 
                 <span>+ R$ {Number(order.credit_fee).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
               </div>
             )}
-            <div className="flex justify-between text-xl font-bold text-[#5C3D8F] pt-2 border-t-2 border-[#5C3D8F]">
+            <div className="flex justify-between text-xl font-bold pt-2 border-t-2" style={{ color: settings?.primary_color || '#5C3D8F', borderColor: settings?.primary_color || '#5C3D8F' }}>
               <span>TOTAL:</span>
               <span>R$ {Number(order.total_amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
             </div>

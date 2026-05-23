@@ -1,5 +1,6 @@
 import { LayoutDashboard, Users, Store, Box, ShoppingCart, DollarSign, Settings, Building, Truck, Package, BookOpen, LogOut, Send } from "lucide-react"
 import { logout } from "@/app/login/actions"
+import { getSettings } from "@/lib/api/settings"
 
 import {
   Sidebar,
@@ -73,15 +74,22 @@ const items = [
   },
 ]
 
-export function AppSidebar() {
+export async function AppSidebar() {
+  const settings = await getSettings()
+  
   return (
     <Sidebar variant="sidebar">
       <SidebarHeader className="p-4 border-b">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold">
-            C
-          </div>
-          <span className="font-bold text-lg">Casa Criativa</span>
+          {settings?.logo_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={settings.logo_url} alt="Logo" className="max-h-10 w-auto object-contain" />
+          ) : (
+            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold">
+              C
+            </div>
+          )}
+          {!settings?.logo_url && <span className="font-bold text-lg">Casa Criativa</span>}
         </div>
       </SidebarHeader>
       <SidebarContent>

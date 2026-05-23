@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { Loader2, Plus, Building, Percent, Edit, Trash2, Download, DatabaseBackup, Store } from "lucide-react"
+import { Loader2, Plus, Building, Percent, Edit, Trash2, Download, DatabaseBackup, Store, Palette } from "lucide-react"
 import {
   Table,
   TableBody,
@@ -136,32 +136,56 @@ export default function SettingsPage() {
     try {
       if (type === 'clients') {
         const data = await getClients()
-        downloadCSV(data, 'backup-clientes')
+        const formattedData = data.map(c => ({
+          'ID': c.id,
+          'Nome': c.full_name,
+          'Documento': c.document || '',
+          'Telefone / WhatsApp': c.whatsapp || '',
+          'Instagram': c.instagram || '',
+          'E-mail': c.email || '',
+          'Endereço': c.address || '',
+          'Data Nascimento': c.birth_date ? new Date(c.birth_date).toLocaleDateString('pt-BR') : '',
+          'LTV (Valor Gasto)': c.ltv || 0,
+          'Total Pedidos': c.orders_count || 0,
+          'Data Cadastro': c.created_at ? new Date(c.created_at).toLocaleDateString('pt-BR') : ''
+        }))
+        downloadCSV(formattedData, 'backup-clientes')
       } else if (type === 'orders') {
         const data = await getOrders()
-        // Format orders for CSV export (flattening relationships)
-        const formattedData = data.map(order => ({
-          ...order,
-          client_name: order.clients?.full_name || '',
-          company_name: order.companies?.business_name || ''
+        const formattedData = data.map(o => ({
+          'ID Pedido': o.id,
+          'Nº Pedido': o.order_number,
+          'Cliente': o.clients?.full_name || '',
+          'Empresa': o.companies?.business_name || '',
+          'Status': o.status,
+          'Data Entrega': o.delivery_date ? new Date(o.delivery_date).toLocaleDateString('pt-BR') : '',
+          'Total Bruto (R$)': o.total_amount,
+          'Desconto (R$)': o.discount_amount || 0,
+          'Total Líquido (R$)': o.final_amount,
+          'Custo Total (R$)': o.total_cost || 0,
+          'Lucro (R$)': o.profit_amount || 0,
+          'Margem (%)': o.profit_margin || 0,
+          'Método Pagamento': o.payment_method || '',
+          'Taxa Cartão (R$)': o.credit_fee || 0,
+          'Parceiro Frete': o.shipping_partners?.name || '',
+          'Valor Frete (R$)': o.shipping_cost || 0,
+          'Data Criação': o.created_at ? new Date(o.created_at).toLocaleDateString('pt-BR') : ''
         }))
-        // Remove nested objects before export
-        formattedData.forEach(d => {
-          delete d.clients
-          delete d.companies
-        })
         downloadCSV(formattedData, 'backup-pedidos')
       } else if (type === 'finance') {
         const data = await getTransactions()
         const formattedData = data.map((t: any) => ({
-          ...t,
-          order_number: t.orders?.order_number || '',
-          supplier_name: t.suppliers?.name || ''
+          'ID Transação': t.id,
+          'Tipo': t.type === 'income' ? 'Receita' : 'Despesa',
+          'Descrição': t.description,
+          'Valor (R$)': t.amount,
+          'Categoria': t.category,
+          'Data': t.date ? new Date(t.date).toLocaleDateString('pt-BR') : '',
+          'Status': t.status,
+          'Conta/Banco': t.bank_account || '',
+          'Nº Pedido Associado': t.orders?.order_number || '',
+          'Fornecedor Associado': t.suppliers?.name || ''
         }))
-        formattedData.forEach((d: any) => {
-          delete d.orders
-          delete d.suppliers
-        })
         downloadCSV(formattedData, 'backup-financeiro')
       }
     } catch (err) {
@@ -196,6 +220,9 @@ export default function SettingsPage() {
         <TabsList className="mb-4 flex flex-wrap h-auto bg-transparent border-b rounded-none w-full justify-start p-0 gap-4">
           <TabsTrigger value="company" className="flex items-center gap-2 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-0">
             <Building className="h-4 w-4" /> Dados da Empresa
+          </TabsTrigger>
+          <TabsTrigger value="design" className="flex items-center gap-2 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-0">
+            <Palette className="h-4 w-4" /> Design e Aparência
           </TabsTrigger>
           <TabsTrigger value="stores" className="flex items-center gap-2 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-0">
             <Store className="h-4 w-4" /> Lojas e Perfis
@@ -315,6 +342,68 @@ export default function SettingsPage() {
                 <Button type="submit" className="bg-[#5C3D8F] hover:bg-[#4a3173] text-white" disabled={savingSettings}>
                   {savingSettings && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Salvar Dados
+                </Button>
+              </CardFooter>
+            </form>
+          </Card>
+        </TabsContent>
+
+        {/* TAB DESIGN E APARÊNCIA */}
+        <TabsContent value="design">
+          <Card>
+            <CardHeader>
+              <CardTitle>Design e Aparência</CardTitle>
+              <CardDescription>
+                Personalize as cores do sistema e o logotipo que aparecerá no cabeçalho e nos PDFs gerados.
+              </CardDescription>
+            </CardHeader>
+            <form onSubmit={handleSaveSettings}>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="logo_url">URL do Logotipo (Link da Imagem)</Label>
+                    <Input 
+                      id="logo_url" 
+                      value={settings.logo_url || ''} 
+                      onChange={e => setSettingsData({...settings, logo_url: e.target.value})} 
+                      placeholder="Ex: https://meusite.com/logo.png"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">O logotipo aparecerá na impressão do Orçamento e Pedido.</p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="primary_color">Cor Primária (Hexadecimal)</Label>
+                    <div className="flex gap-2">
+                      <Input 
+                        id="primary_color_picker" 
+                        type="color"
+                        className="w-12 h-10 p-1 cursor-pointer"
+                        value={settings.primary_color || '#5C3D8F'} 
+                        onChange={e => setSettingsData({...settings, primary_color: e.target.value})} 
+                      />
+                      <Input 
+                        id="primary_color" 
+                        value={settings.primary_color || '#5C3D8F'} 
+                        onChange={e => setSettingsData({...settings, primary_color: e.target.value})} 
+                        className="flex-1 uppercase font-mono"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">Essa cor altera botões principais e o cabeçalho do PDF.</p>
+                  </div>
+                </div>
+
+                {settings.logo_url && (
+                  <div className="mt-4 border p-4 rounded-md">
+                    <Label className="mb-2 block">Pré-visualização do Logotipo:</Label>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={settings.logo_url} alt="Logo Preview" className="max-h-24 object-contain" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                  </div>
+                )}
+              </CardContent>
+              <CardFooter className="flex justify-end">
+                <Button type="submit" className="bg-[#5C3D8F] hover:bg-[#4a3173] text-white" style={{ backgroundColor: settings.primary_color || '#5C3D8F' }} disabled={savingSettings}>
+                  {savingSettings && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Salvar Design
                 </Button>
               </CardFooter>
             </form>
