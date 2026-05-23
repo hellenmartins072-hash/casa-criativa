@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { Loader2, Plus, Building, Percent, Edit, Trash2 } from "lucide-react"
+import { Loader2, Plus, Building, Percent, Edit, Trash2, Download, DatabaseBackup } from "lucide-react"
 import {
   Table,
   TableBody,
@@ -35,12 +35,17 @@ import {
   updateFee, 
   deleteFee 
 } from "@/lib/api/settings"
+import { getClients } from "@/lib/api/clients"
+import { getOrders } from "@/lib/api/orders"
+import { getTransactions } from "@/lib/api/finance"
+import { downloadCSV } from "@/lib/utils/export"
 import { Skeleton } from "@/components/ui/skeleton"
 
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true)
   const [savingSettings, setSavingSettings] = useState(false)
   const [savingFee, setSavingFee] = useState(false)
+  const [exportingType, setExportingType] = useState<string | null>(null)
   
   const [settings, setSettingsData] = useState<Partial<Settings>>({
     business_name: '',
@@ -125,6 +130,47 @@ export default function SettingsPage() {
     setIsFeeDialogOpen(true)
   }
 
+  const handleExport = async (type: 'clients' | 'orders' | 'finance') => {
+    setExportingType(type)
+    try {
+      if (type === 'clients') {
+        const data = await getClients()
+        downloadCSV(data, 'backup-clientes')
+      } else if (type === 'orders') {
+        const data = await getOrders()
+        // Format orders for CSV export (flattening relationships)
+        const formattedData = data.map(order => ({
+          ...order,
+          client_name: order.clients?.full_name || '',
+          company_name: order.companies?.business_name || ''
+        }))
+        // Remove nested objects before export
+        formattedData.forEach(d => {
+          delete d.clients
+          delete d.companies
+        })
+        downloadCSV(formattedData, 'backup-pedidos')
+      } else if (type === 'finance') {
+        const data = await getTransactions()
+        const formattedData = data.map((t: any) => ({
+          ...t,
+          order_number: t.orders?.order_number || '',
+          supplier_name: t.suppliers?.name || ''
+        }))
+        formattedData.forEach((d: any) => {
+          delete d.orders
+          delete d.suppliers
+        })
+        downloadCSV(formattedData, 'backup-financeiro')
+      }
+    } catch (err) {
+      alert("Erro ao exportar dados.")
+      console.error(err)
+    } finally {
+      setExportingType(null)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -152,6 +198,9 @@ export default function SettingsPage() {
           </TabsTrigger>
           <TabsTrigger value="fees" className="flex items-center gap-2">
             <Percent className="h-4 w-4" /> Taxas e Plataformas
+          </TabsTrigger>
+          <TabsTrigger value="backup" className="flex items-center gap-2">
+            <DatabaseBackup className="h-4 w-4" /> Backup e Exportação
           </TabsTrigger>
         </TabsList>
 
@@ -280,6 +329,74 @@ export default function SettingsPage() {
                   )}
                 </TableBody>
               </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* TAB 3: BACKUP E EXPORTAÇÃO */}
+        <TabsContent value="backup">
+          <Card>
+            <CardHeader>
+              <CardTitle>Backup de Dados (CSV)</CardTitle>
+              <CardDescription>
+                Faça o download de relatórios completos do sistema em formato Excel/CSV.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                <Card className="border shadow-sm">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg">Clientes</CardTitle>
+                    <CardDescription>Base completa de pessoas físicas.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Button 
+                      onClick={() => handleExport('clients')} 
+                      disabled={exportingType === 'clients'}
+                      className="w-full bg-[#5C3D8F] hover:bg-[#4a3173]"
+                    >
+                      {exportingType === 'clients' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                      Exportar Clientes
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card className="border shadow-sm">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg">Pedidos</CardTitle>
+                    <CardDescription>Histórico de todos os pedidos criados.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Button 
+                      onClick={() => handleExport('orders')} 
+                      disabled={exportingType === 'orders'}
+                      className="w-full bg-[#5C3D8F] hover:bg-[#4a3173]"
+                    >
+                      {exportingType === 'orders' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                      Exportar Pedidos
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card className="border shadow-sm">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg">Financeiro</CardTitle>
+                    <CardDescription>Todas as receitas e despesas registradas.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Button 
+                      onClick={() => handleExport('finance')} 
+                      disabled={exportingType === 'finance'}
+                      className="w-full bg-[#5C3D8F] hover:bg-[#4a3173]"
+                    >
+                      {exportingType === 'finance' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                      Exportar Financeiro
+                    </Button>
+                  </CardContent>
+                </Card>
+
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
