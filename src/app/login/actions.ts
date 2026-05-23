@@ -13,13 +13,6 @@ export async function login(formData: FormData) {
     password: formData.get('password') as string,
   }
 
-  // ROTA DE TESTE (BYPASS DE LOGIN)
-  if (data.email === 'teste@teste.com') {
-    const cookieStore = await cookies()
-    cookieStore.set('bypass_auth', 'true')
-    revalidatePath('/', 'layout')
-    redirect('/')
-  }
 
   const { error } = await supabase.auth.signInWithPassword(data)
 
@@ -39,13 +32,6 @@ export async function signup(formData: FormData) {
     password: formData.get('password') as string,
   }
 
-  // ROTA DE TESTE (BYPASS DE SIGNUP)
-  if (data.email === 'teste@teste.com') {
-    const cookieStore = await cookies()
-    cookieStore.set('bypass_auth', 'true')
-    revalidatePath('/', 'layout')
-    redirect('/')
-  }
 
   const { error } = await supabase.auth.signUp(data)
 
