@@ -8,9 +8,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>
+  searchParams: Promise<{ error?: string; mode?: string }>
 }) {
   const params = await searchParams;
+  const isSignup = params.mode === 'signup';
   
   return (
     <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950 p-4 relative overflow-hidden">
@@ -71,18 +72,20 @@ export default async function LoginPage({
           <CardFooter className="flex flex-col gap-3 pt-4">
             <Button 
               type="submit"
-              formAction={login} 
+              formAction={isSignup ? signup : login} 
               className="w-full h-11 text-base font-semibold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all active:scale-[0.98]"
             >
-              Entrar
+              {isSignup ? 'Finalizar Cadastro' : 'Entrar no Sistema'}
             </Button>
+            
             <Button 
-              type="submit"
-              formAction={signup} 
+              asChild
               variant="outline" 
               className="w-full h-11"
             >
-              Criar conta
+              <Link href={isSignup ? '/login' : '/login?mode=signup'}>
+                {isSignup ? 'Já tenho uma conta (Fazer Login)' : 'Criar uma nova conta'}
+              </Link>
             </Button>
           </CardFooter>
         </form>
