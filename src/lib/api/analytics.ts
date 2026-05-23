@@ -191,37 +191,50 @@ export async function getVIPSeasonalClients() {
     .slice(0, 10)
 }
 
-// 6. Gastos Futuros
-export async function getFutureExpenses() {
-  const today = new Date().toISOString()
-  const { data, error } = await supabase
-    .from('financial_transactions')
-    .select('amount')
-    .eq('type', 'Despesa')
-    .eq('status', 'Pendente')
+// 6. Resumo Financeiro do Mês Atual (Receitas Pagas, Despesas Pagas, Lucro)
+export async function getMonthlyFinancialSummary() {
+  const date = new Date();
+  const firstDay = new Date(date.getFullYear(), date.getMonth(), 1).toISOString();
+  const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0).toISOString();
 
-  if (error || !data) return 0
-  return data.reduce((sum, tx) => sum + (Number(tx.amount) || 0), 0)
+  const { data: txs } = await supabase
+    .from('financial_transactions')
+    .select('amount, type')
+    .eq('status', 'Pago')
+    .gte('payment_date', firstDay)
+    .lte('payment_date', lastDay);
+
+  let revenues = 0;
+  let expenses = 0;
+
+  if (txs) {
+    txs.forEach(tx => {
+      if (tx.type === 'Receita') revenues += (Number(tx.amount) || 0);
+      else if (tx.type === 'Despesa') expenses += (Number(tx.amount) || 0);
+    });
+  }
+
+  return { revenues, expenses, profit: revenues - expenses };
 }
 
-// 7. Lucros Estimados (A Receber - A Pagar Pendentes)
-export async function getEstimatedProfits() {
+// 7. A Receber vs A Pagar (Geral)
+export async function getPendingFinancials() {
   const { data: receivables } = await supabase
     .from('financial_transactions')
     .select('amount')
     .eq('type', 'Receita')
-    .eq('status', 'Pendente')
+    .eq('status', 'Pendente');
 
   const { data: payables } = await supabase
     .from('financial_transactions')
     .select('amount')
     .eq('type', 'Despesa')
-    .eq('status', 'Pendente')
+    .eq('status', 'Pendente');
 
-  const totalReceivable = (receivables || []).reduce((sum, tx) => sum + (Number(tx.amount) || 0), 0)
-  const totalPayable = (payables || []).reduce((sum, tx) => sum + (Number(tx.amount) || 0), 0)
+  const totalReceivable = (receivables || []).reduce((sum, tx) => sum + (Number(tx.amount) || 0), 0);
+  const totalPayable = (payables || []).reduce((sum, tx) => sum + (Number(tx.amount) || 0), 0);
 
-  return totalReceivable - totalPayable
+  return { receivable: totalReceivable, payable: totalPayable };
 }
 
 // 8. Produtos Mais Vendidos

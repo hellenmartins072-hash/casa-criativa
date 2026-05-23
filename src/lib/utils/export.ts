@@ -4,7 +4,7 @@ export function downloadCSV(data: any[], filename: string) {
     return
   }
 
-  const separator = ','
+  const separator = ';'
   const keys = Object.keys(data[0])
   
   const csvContent =
@@ -18,15 +18,16 @@ export function downloadCSV(data: any[], filename: string) {
           cell = JSON.stringify(cell)
         }
         cell = String(cell)
-        // Escapar aspas duplas e envolver em aspas se tiver vírgula ou aspas
-        if (cell.search(/("|,|\n)/g) >= 0) {
+        // Escapar aspas duplas e envolver em aspas se tiver o separador ou aspas
+        if (cell.search(new RegExp(`("|\n|${separator})`, 'g')) >= 0) {
           cell = `"${cell.replace(/"/g, '""')}"`
         }
         return cell
       }).join(separator)
     }).join('\n')
 
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+  // Adiciona BOM (Byte Order Mark) para forçar o Excel a ler em UTF-8 com acentos corretos
+  const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.setAttribute('href', url)

@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { Loader2, Plus, Building, Percent, Edit, Trash2, Download, DatabaseBackup } from "lucide-react"
+import { Loader2, Plus, Building, Percent, Edit, Trash2, Download, DatabaseBackup, Store } from "lucide-react"
 import {
   Table,
   TableBody,
@@ -40,6 +40,7 @@ import { getOrders } from "@/lib/api/orders"
 import { getTransactions } from "@/lib/api/finance"
 import { downloadCSV } from "@/lib/utils/export"
 import { Skeleton } from "@/components/ui/skeleton"
+import { StoresList } from "@/components/stores-list"
 
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true)
@@ -192,14 +193,17 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="company" className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="company" className="flex items-center gap-2">
+        <TabsList className="mb-4 flex flex-wrap h-auto bg-transparent border-b rounded-none w-full justify-start p-0 gap-4">
+          <TabsTrigger value="company" className="flex items-center gap-2 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-0">
             <Building className="h-4 w-4" /> Dados da Empresa
           </TabsTrigger>
-          <TabsTrigger value="fees" className="flex items-center gap-2">
+          <TabsTrigger value="stores" className="flex items-center gap-2 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-0">
+            <Store className="h-4 w-4" /> Lojas e Perfis
+          </TabsTrigger>
+          <TabsTrigger value="fees" className="flex items-center gap-2 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-0">
             <Percent className="h-4 w-4" /> Taxas e Plataformas
           </TabsTrigger>
-          <TabsTrigger value="backup" className="flex items-center gap-2">
+          <TabsTrigger value="backup" className="flex items-center gap-2 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-0">
             <DatabaseBackup className="h-4 w-4" /> Backup e Exportação
           </TabsTrigger>
         </TabsList>
@@ -267,6 +271,15 @@ export default function SettingsPage() {
                 </Button>
               </CardFooter>
             </form>
+          </Card>
+        </TabsContent>
+
+        {/* TAB LOJAS E PERFIS */}
+        <TabsContent value="stores">
+          <Card>
+            <CardContent className="pt-6">
+              <StoresList />
+            </CardContent>
           </Card>
         </TabsContent>
 

@@ -141,6 +141,27 @@ export function SupplierForm({ initialData }: SupplierFormProps) {
               />
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="instagram">Instagram</Label>
+              <Input
+                id="instagram"
+                name="instagram"
+                value={formData.instagram || ''}
+                onChange={handleChange}
+                placeholder="@fornecedor"
+              />
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="address">Endereço Completo</Label>
+              <Input
+                id="address"
+                name="address"
+                value={formData.address || ''}
+                onChange={handleChange}
+              />
+            </div>
+
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="provided_items">Materiais/Serviços fornecidos</Label>
               <Input

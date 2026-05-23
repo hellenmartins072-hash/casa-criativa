@@ -16,7 +16,7 @@ import { StoreFormDialog } from "@/components/store-form-dialog"
 import { getStores, deleteStore, Store } from "@/lib/api/stores"
 import { Skeleton } from "@/components/ui/skeleton"
 
-export default function StoresPage() {
+export function StoresList() {
   const [stores, setStores] = useState<Store[]>([])
   const [loading, setLoading] = useState(true)
 

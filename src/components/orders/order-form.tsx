@@ -279,7 +279,9 @@ export function OrderForm({ initialData }: OrderFormProps) {
                   >
                     <option value="none">-- Não definido --</option>
                     <option value="PIX">PIX</option>
-                    <option value="Cartão">Cartão</option>
+                    <option value="Cartão de crédito">Cartão de crédito</option>
+                    <option value="Cartão de débito">Cartão de débito</option>
+                    <option value="Transferência">Transferência</option>
                     <option value="Boleto">Boleto</option>
                     <option value="Dinheiro">Dinheiro</option>
                   </select>

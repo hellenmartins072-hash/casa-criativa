@@ -122,6 +122,17 @@ export function CompanyForm({ initialData }: CompanyFormProps) {
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="instagram">Instagram</Label>
+              <Input
+                id="instagram"
+                name="instagram"
+                value={formData.instagram || ''}
+                onChange={handleChange}
+                placeholder="@empresa"
+              />
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
               <Select
                 value={formData.status}
@@ -158,7 +169,9 @@ export function CompanyForm({ initialData }: CompanyFormProps) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="PIX">PIX</SelectItem>
-                  <SelectItem value="Cartão">Cartão</SelectItem>
+                  <SelectItem value="Cartão de crédito">Cartão de crédito</SelectItem>
+                  <SelectItem value="Cartão de débito">Cartão de débito</SelectItem>
+                  <SelectItem value="Transferência">Transferência</SelectItem>
                   <SelectItem value="Boleto">Boleto</SelectItem>
                   <SelectItem value="Dinheiro">Dinheiro</SelectItem>
                 </SelectContent>

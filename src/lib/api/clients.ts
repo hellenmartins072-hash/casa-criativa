@@ -15,9 +15,10 @@ export type Client = {
   client_type?: 'Varejo' | 'Revenda' | 'Corporativo'
   status?: 'Ativo' | 'Despedido'
   is_vip?: boolean
-  preferred_payment?: 'PIX' | 'Cartão' | 'Boleto' | 'Dinheiro' | null
+  preferred_payment?: 'PIX' | 'Cartão de crédito' | 'Cartão de débito' | 'Transferência' | 'Boleto' | 'Dinheiro' | null
   accepts_boleto?: boolean
   social_media?: string | null
+  instagram?: string | null
   posts_products?: boolean
   discount_percentage?: number | null
   was_referred?: boolean

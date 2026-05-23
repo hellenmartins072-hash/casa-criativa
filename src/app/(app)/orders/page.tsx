@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Plus, Search, FileText, MoreHorizontal } from 'lucide-react'
-import { getOrders, type Order } from '@/lib/api/orders'
+import { getOrders, deleteOrder, type Order } from '@/lib/api/orders'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -44,6 +44,30 @@ export default function OrdersPage() {
     }
     loadOrders()
   }, [])
+
+  const loadOrders = async () => {
+    setLoading(true)
+    try {
+      const data = await getOrders()
+      setOrders(data || [])
+    } catch (error) {
+      console.error('Error loading orders:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    if (confirm("ATENÇÃO: Deseja realmente EXCLUIR este pedido? Esta ação não pode ser desfeita e pode afetar o caixa e o estoque.")) {
+      try {
+        await deleteOrder(id)
+        loadOrders()
+      } catch (err) {
+        alert("Erro ao excluir pedido.")
+        console.error(err)
+      }
+    }
+  }
 
   const filteredOrders = orders.filter(order => {
     const clientName = order.clients?.full_name || ''
@@ -167,6 +191,9 @@ export default function OrdersPage() {
                               </DropdownMenuItem>
                               <DropdownMenuItem className="cursor-pointer" onClick={() => window.open(`/orders/${order.id}/pdf`, '_blank')}>
                                 Gerar PDF
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="cursor-pointer text-red-600 focus:text-red-700" onClick={() => handleDelete(order.id)}>
+                                Excluir
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>

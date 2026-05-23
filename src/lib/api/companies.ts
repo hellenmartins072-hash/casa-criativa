@@ -7,9 +7,10 @@ export type Company = {
   trading_name?: string | null
   cnpj?: string | null
   phone?: string | null
+  instagram?: string | null
   address?: string | null
   store_ids?: string[] | null
-  payment_method?: 'PIX' | 'Cartão' | 'Boleto' | 'Dinheiro' | null
+  payment_method?: 'PIX' | 'Cartão de crédito' | 'Cartão de débito' | 'Transferência' | 'Boleto' | 'Dinheiro' | null
   boleto_only?: boolean
   boleto_days?: number | null
   status?: 'Ativo' | 'Despedido'

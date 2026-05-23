@@ -126,6 +126,7 @@ export function MaterialForm({ initialData }: MaterialFormProps) {
                   <SelectItem value="Corte laser">Corte laser</SelectItem>
                   <SelectItem value="Brinde">Brinde</SelectItem>
                   <SelectItem value="Embalagem">Embalagem</SelectItem>
+                  <SelectItem value="Gráfica">Gráfica</SelectItem>
                   <SelectItem value="Outro">Outro</SelectItem>
                 </SelectContent>
               </Select>

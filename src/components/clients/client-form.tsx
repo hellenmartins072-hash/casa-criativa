@@ -151,6 +151,17 @@ export function ClientForm({ initialData }: ClientFormProps) {
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="instagram">Instagram</Label>
+              <Input
+                id="instagram"
+                name="instagram"
+                placeholder="@usuario"
+                value={formData.instagram || ''}
+                onChange={handleChange}
+              />
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="cpf">CPF</Label>
               <Input
                 id="cpf"
@@ -257,7 +268,9 @@ export function ClientForm({ initialData }: ClientFormProps) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="PIX">PIX</SelectItem>
-                  <SelectItem value="Cartão">Cartão</SelectItem>
+                  <SelectItem value="Cartão de crédito">Cartão de crédito</SelectItem>
+                  <SelectItem value="Cartão de débito">Cartão de débito</SelectItem>
+                  <SelectItem value="Transferência">Transferência</SelectItem>
                   <SelectItem value="Boleto">Boleto</SelectItem>
                   <SelectItem value="Dinheiro">Dinheiro</SelectItem>
                 </SelectContent>

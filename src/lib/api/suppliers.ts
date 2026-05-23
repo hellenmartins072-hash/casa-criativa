@@ -6,6 +6,8 @@ export type Supplier = {
   document?: string | null
   phone?: string | null
   email?: string | null
+  instagram?: string | null
+  address?: string | null
   type?: string | null
   provided_items?: string | null
   average_delivery_days?: number | null

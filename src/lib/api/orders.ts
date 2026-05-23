@@ -2,7 +2,7 @@ import { supabase } from '../supabase'
 import { createTransaction } from './finance'
 
 export type OrderStatus = 'Orçamento' | 'Aprovado' | 'Em Produção' | 'Finalizado' | 'Entregue' | 'Cancelado'
-export type PaymentMethod = 'PIX' | 'Cartão' | 'Boleto' | 'Dinheiro'
+export type PaymentMethod = 'PIX' | 'Cartão de crédito' | 'Cartão de débito' | 'Transferência' | 'Boleto' | 'Dinheiro'
 
 export type OrderItem = {
   id?: string

@@ -22,11 +22,6 @@ const items = [
     icon: LayoutDashboard,
   },
   {
-    title: "Lojas e Perfis",
-    url: "/stores",
-    icon: Store,
-  },
-  {
     title: "Clientes",
     url: "/clients",
     icon: Users,
