@@ -2,13 +2,13 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Company, createCompany, updateCompany } from '@/lib/api/companies'
+import { Company, createCompany, updateCompany, createCompanyContact, updateCompanyContact, deleteCompanyContact, type CompanyContact } from '@/lib/api/companies'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Plus, Trash2 } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 
 interface CompanyFormProps {
@@ -19,6 +19,9 @@ export function CompanyForm({ initialData }: CompanyFormProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  const [contacts, setContacts] = useState<Partial<CompanyContact>[]>(initialData?.contacts || [])
+  const [deletedContacts, setDeletedContacts] = useState<string[]>([])
 
   const [formData, setFormData] = useState<Partial<Company>>(
     initialData || {
@@ -46,16 +49,60 @@ export function CompanyForm({ initialData }: CompanyFormProps) {
     setFormData({ ...formData, boleto_only: checked })
   }
 
+  const handleAddContact = () => {
+    setContacts([...contacts, { name: '', phone: '', email: '', role: '' }])
+  }
+
+  const handleContactChange = (index: number, field: keyof CompanyContact, value: string) => {
+    const newContacts = [...contacts]
+    newContacts[index] = { ...newContacts[index], [field]: value }
+    setContacts(newContacts)
+  }
+
+  const handleRemoveContact = (index: number) => {
+    const contact = contacts[index]
+    if (contact.id) {
+      setDeletedContacts([...deletedContacts, contact.id])
+    }
+    const newContacts = [...contacts]
+    newContacts.splice(index, 1)
+    setContacts(newContacts)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
 
     try {
-      if (initialData?.id) {
-        await updateCompany(initialData.id, formData)
+      let companyId = initialData?.id
+      // 1. Salvar Empresa (Removendo o array de contacts para não dar erro no Supabase na hora de salvar só a empresa)
+      const payloadToSave = { ...formData }
+      delete payloadToSave.contacts
+
+      if (companyId) {
+        await updateCompany(companyId, payloadToSave)
       } else {
-        await createCompany(formData)
+        const newCompany = await createCompany(payloadToSave)
+        companyId = newCompany.id
+      }
+
+      if (!companyId) throw new Error("Falha ao obter ID da empresa.")
+
+      // 2. Apagar Contatos Removidos
+      for (const id of deletedContacts) {
+        await deleteCompanyContact(id)
+      }
+
+      // 3. Salvar / Atualizar Contatos
+      for (const contact of contacts) {
+        if (!contact.name) continue // ignora contatos vazios
+
+        if (contact.id) {
+          await updateCompanyContact(contact.id, contact)
+        } else {
+          await createCompanyContact({ ...contact, company_id: companyId })
+        }
       }
       router.push('/companies')
       router.refresh()
@@ -200,7 +247,74 @@ export function CompanyForm({ initialData }: CompanyFormProps) {
               </Label>
             </div>
             
-            {/* Contatos poderiam ser Selects puxando da tabela de Clientes, mas por simplicidade não faremos isso neste formulário inicial sem uma API de busca com debounce */}
+            {/* CONTATOS DA EMPRESA */}
+            <div className="md:col-span-2 pt-4 border-t mt-4">
+              <div className="flex justify-between items-center mb-4">
+                <Label className="text-lg font-bold text-[#5C3D8F]">Contatos da Empresa</Label>
+                <Button type="button" variant="outline" size="sm" onClick={handleAddContact}>
+                  <Plus className="h-4 w-4 mr-2" /> Adicionar Contato
+                </Button>
+              </div>
+
+              {contacts.length === 0 ? (
+                <div className="text-sm text-muted-foreground text-center p-4 border border-dashed rounded-md">
+                  Nenhum contato cadastrado. Clique em "Adicionar Contato".
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {contacts.map((contact, index) => (
+                    <div key={contact.id || index} className="grid grid-cols-1 md:grid-cols-12 gap-2 p-3 bg-gray-50 border rounded-md relative group">
+                      <div className="md:col-span-3 space-y-1">
+                        <Label className="text-xs">Nome *</Label>
+                        <Input 
+                          required 
+                          value={contact.name || ''} 
+                          onChange={e => handleContactChange(index, 'name', e.target.value)}
+                          className="h-8 text-sm bg-white"
+                        />
+                      </div>
+                      <div className="md:col-span-3 space-y-1">
+                        <Label className="text-xs">Cargo / Setor</Label>
+                        <Input 
+                          value={contact.role || ''} 
+                          onChange={e => handleContactChange(index, 'role', e.target.value)}
+                          placeholder="Ex: Compras"
+                          className="h-8 text-sm bg-white"
+                        />
+                      </div>
+                      <div className="md:col-span-3 space-y-1">
+                        <Label className="text-xs">Telefone</Label>
+                        <Input 
+                          value={contact.phone || ''} 
+                          onChange={e => handleContactChange(index, 'phone', e.target.value)}
+                          className="h-8 text-sm bg-white"
+                        />
+                      </div>
+                      <div className="md:col-span-2 space-y-1">
+                        <Label className="text-xs">E-mail</Label>
+                        <Input 
+                          type="email"
+                          value={contact.email || ''} 
+                          onChange={e => handleContactChange(index, 'email', e.target.value)}
+                          className="h-8 text-sm bg-white"
+                        />
+                      </div>
+                      <div className="md:col-span-1 flex items-end justify-center pb-0.5">
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => handleRemoveContact(index)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
           </div>
         </CardContent>

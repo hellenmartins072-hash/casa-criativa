@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Plus, Search, MoreHorizontal, Truck, Box } from 'lucide-react'
+import { Plus, Search, MoreHorizontal, Truck, Box, TrendingDown } from 'lucide-react'
 import { getSuppliers, type Supplier } from '@/lib/api/suppliers'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -62,6 +62,11 @@ export default function SuppliersPage() {
           </p>
         </div>
         <div className="flex items-center space-x-2">
+          <Link href="/suppliers/best-prices">
+            <Button variant="outline" className="border-green-500 text-green-700 hover:bg-green-50">
+              <TrendingDown className="mr-2 h-4 w-4" /> Produto Mais Barato
+            </Button>
+          </Link>
           <Link href="/suppliers/new">
             <Button className="bg-[#5C3D8F] hover:bg-[#4a3173] text-white">
               <Plus className="mr-2 h-4 w-4" /> Novo Fornecedor

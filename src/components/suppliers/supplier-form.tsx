@@ -2,13 +2,13 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Supplier, createSupplier, updateSupplier } from '@/lib/api/suppliers'
+import { Supplier, createSupplier, updateSupplier, createSupplierProduct, updateSupplierProduct, deleteSupplierProduct, type SupplierProduct } from '@/lib/api/suppliers'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Plus, Trash2 } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 
 interface SupplierFormProps {
@@ -19,6 +19,9 @@ export function SupplierForm({ initialData }: SupplierFormProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  const [products, setProducts] = useState<Partial<SupplierProduct>[]>(initialData?.products || [])
+  const [deletedProducts, setDeletedProducts] = useState<string[]>([])
 
   const [formData, setFormData] = useState<Partial<Supplier>>(
     initialData || {
@@ -46,16 +49,59 @@ export function SupplierForm({ initialData }: SupplierFormProps) {
     setFormData({ ...formData, [name]: value })
   }
 
+  const handleAddProduct = () => {
+    setProducts([...products, { product_name: '', price: 0, notes: '' }])
+  }
+
+  const handleProductChange = (index: number, field: keyof SupplierProduct, value: any) => {
+    const newProducts = [...products]
+    newProducts[index] = { ...newProducts[index], [field]: value }
+    setProducts(newProducts)
+  }
+
+  const handleRemoveProduct = (index: number) => {
+    const prod = products[index]
+    if (prod.id) {
+      setDeletedProducts([...deletedProducts, prod.id])
+    }
+    const newProducts = [...products]
+    newProducts.splice(index, 1)
+    setProducts(newProducts)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
 
     try {
-      if (initialData?.id) {
-        await updateSupplier(initialData.id, formData)
+      let supplierId = initialData?.id
+      const payloadToSave = { ...formData }
+      delete payloadToSave.products
+
+      if (supplierId) {
+        await updateSupplier(supplierId, payloadToSave)
       } else {
-        await createSupplier(formData)
+        const newSupplier = await createSupplier(payloadToSave)
+        supplierId = newSupplier.id
+      }
+
+      if (!supplierId) throw new Error("Falha ao obter ID do fornecedor.")
+
+      // Apagar produtos removidos
+      for (const id of deletedProducts) {
+        await deleteSupplierProduct(id)
+      }
+
+      // Salvar/Atualizar produtos
+      for (const prod of products) {
+        if (!prod.product_name) continue
+
+        if (prod.id) {
+          await updateSupplierProduct(prod.id, prod)
+        } else {
+          await createSupplierProduct({ ...prod, supplier_id: supplierId })
+        }
       }
       router.push('/suppliers')
       router.refresh()
@@ -205,6 +251,72 @@ export function SupplierForm({ initialData }: SupplierFormProps) {
                 className="min-h-[100px]"
               />
             </div>
+
+            {/* TABELA DE PRODUTOS / INSUMOS DO FORNECEDOR */}
+            <div className="md:col-span-2 pt-4 border-t mt-4">
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <Label className="text-lg font-bold text-[#5C3D8F]">Produtos / Insumos deste Fornecedor</Label>
+                  <p className="text-sm text-muted-foreground">Cadastre aqui os preços e produtos que você costuma comprar com este parceiro.</p>
+                </div>
+                <Button type="button" variant="outline" size="sm" onClick={handleAddProduct}>
+                  <Plus className="h-4 w-4 mr-2" /> Adicionar Produto
+                </Button>
+              </div>
+
+              {products.length === 0 ? (
+                <div className="text-sm text-muted-foreground text-center p-4 border border-dashed rounded-md">
+                  Nenhum produto cadastrado. Clique em "Adicionar Produto".
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {products.map((prod, index) => (
+                    <div key={prod.id || index} className="grid grid-cols-1 md:grid-cols-12 gap-2 p-3 bg-gray-50 border rounded-md relative group">
+                      <div className="md:col-span-4 space-y-1">
+                        <Label className="text-xs">Nome do Produto/Insumo *</Label>
+                        <Input 
+                          required 
+                          value={prod.product_name || ''} 
+                          onChange={e => handleProductChange(index, 'product_name', e.target.value)}
+                          className="h-8 text-sm bg-white"
+                        />
+                      </div>
+                      <div className="md:col-span-3 space-y-1">
+                        <Label className="text-xs">Preço (R$)</Label>
+                        <Input 
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={prod.price || 0} 
+                          onChange={e => handleProductChange(index, 'price', parseFloat(e.target.value))}
+                          className="h-8 text-sm bg-white"
+                        />
+                      </div>
+                      <div className="md:col-span-4 space-y-1">
+                        <Label className="text-xs">Observações (Qtd mín, Cores, etc)</Label>
+                        <Input 
+                          value={prod.notes || ''} 
+                          onChange={e => handleProductChange(index, 'notes', e.target.value)}
+                          className="h-8 text-sm bg-white"
+                        />
+                      </div>
+                      <div className="md:col-span-1 flex items-end justify-center pb-0.5">
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => handleRemoveProduct(index)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
           </div>
         </CardContent>
         <CardFooter className="flex justify-end gap-2">
