@@ -1,0 +1,58 @@
+'use server'
+
+import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
+import { createClient } from '@/utils/supabase/server'
+
+export async function login(formData: FormData) {
+  const supabase = await createClient()
+
+  const data = {
+    email: formData.get('email') as string,
+    password: formData.get('password') as string,
+  }
+
+  // ROTA DE TESTE (BYPASS DE LOGIN)
+  if (data.email === 'teste@teste.com') {
+    const cookieStore = await cookies()
+    cookieStore.set('bypass_auth', 'true')
+    revalidatePath('/', 'layout')
+    redirect('/')
+  }
+
+  const { error } = await supabase.auth.signInWithPassword(data)
+
+  if (error) {
+    redirect(`/login?error=${encodeURIComponent(error.message)}`)
+  }
+
+  revalidatePath('/', 'layout')
+  redirect('/')
+}
+
+export async function signup(formData: FormData) {
+  const supabase = await createClient()
+
+  const data = {
+    email: formData.get('email') as string,
+    password: formData.get('password') as string,
+  }
+
+  // ROTA DE TESTE (BYPASS DE SIGNUP)
+  if (data.email === 'teste@teste.com') {
+    const cookieStore = await cookies()
+    cookieStore.set('bypass_auth', 'true')
+    revalidatePath('/', 'layout')
+    redirect('/')
+  }
+
+  const { error } = await supabase.auth.signUp(data)
+
+  if (error) {
+    redirect(`/login?error=${encodeURIComponent(error.message)}`)
+  }
+
+  revalidatePath('/', 'layout')
+  redirect('/')
+}

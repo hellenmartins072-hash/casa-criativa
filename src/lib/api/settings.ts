@@ -1,0 +1,105 @@
+import { supabase } from '../supabase'
+
+// --- Configurações da Empresa ---
+export type Settings = {
+  id: number
+  business_name: string
+  document_number?: string | null
+  phone?: string | null
+  email?: string | null
+  address?: string | null
+  updated_at?: string
+}
+
+export async function getSettings() {
+  const { data, error } = await supabase
+    .from('settings')
+    .select('*')
+    .eq('id', 1)
+    .single()
+
+  if (error) {
+    console.error('Error fetching settings:', error)
+    return null
+  }
+  return data as Settings
+}
+
+export async function updateSettings(settings: Partial<Settings>) {
+  const { data, error } = await supabase
+    .from('settings')
+    .update(settings)
+    .eq('id', 1)
+    .select()
+
+  if (error) {
+    console.error('Error updating settings:', error)
+    throw error
+  }
+  return data ? (data[0] as Settings) : null
+}
+
+// --- Taxas de Pagamento e Plataformas ---
+export type PaymentFee = {
+  id: string
+  name: string
+  type: 'Maquininha' | 'Plataforma' | 'Link de Pagamento' | 'Outros'
+  percentage_fee: number
+  fixed_fee: number
+  is_active: boolean
+  created_at?: string
+}
+
+export async function getFees() {
+  const { data, error } = await supabase
+    .from('payment_fees')
+    .select('*')
+    .order('type', { ascending: true })
+    .order('name', { ascending: true })
+
+  if (error) {
+    console.error('Error fetching fees:', error)
+    throw error
+  }
+  return data as PaymentFee[]
+}
+
+export async function createFee(fee: Partial<PaymentFee>) {
+  const { data, error } = await supabase
+    .from('payment_fees')
+    .insert([fee])
+    .select()
+
+  if (error) {
+    console.error('Error creating fee:', error)
+    throw error
+  }
+  return data ? (data[0] as PaymentFee) : null
+}
+
+export async function updateFee(id: string, fee: Partial<PaymentFee>) {
+  const { data, error } = await supabase
+    .from('payment_fees')
+    .update(fee)
+    .eq('id', id)
+    .select()
+
+  if (error) {
+    console.error('Error updating fee:', error)
+    throw error
+  }
+  return data ? (data[0] as PaymentFee) : null
+}
+
+export async function deleteFee(id: string) {
+  const { error } = await supabase
+    .from('payment_fees')
+    .delete()
+    .eq('id', id)
+
+  if (error) {
+    console.error('Error deleting fee:', error)
+    throw error
+  }
+  return true
+}
