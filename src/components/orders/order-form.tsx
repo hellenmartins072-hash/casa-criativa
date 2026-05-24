@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
-import { Loader2, Plus, Trash2, Printer } from 'lucide-react'
+import { Loader2, Plus, Trash2, Printer, MessageCircle } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { ClientForm } from '@/components/clients/client-form'
 import { CompanyForm } from '@/components/companies/company-form'
@@ -33,6 +33,7 @@ export function OrderForm({ initialData }: OrderFormProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [loadingData, setLoadingData] = useState(true)
+  const [sendingWhatsApp, setSendingWhatsApp] = useState(false)
   const [error, setError] = useState('')
   
   // Dados de suporte
@@ -134,6 +135,59 @@ export function OrderForm({ initialData }: OrderFormProps) {
         setFormData({ ...formData, company_id: value, client_id: null })
       } else {
         setFormData({ ...formData, [name]: value })
+      }
+    }
+  }
+
+  const handleSendWhatsApp = async () => {
+    if (!initialData?.id) return
+    
+    // Find client phone
+    let targetPhone = ''
+    let clientName = ''
+    if (formData.client_id) {
+      const client = clients.find(c => c.id === formData.client_id)
+      if (client) {
+        targetPhone = client.whatsapp || ''
+        clientName = client.full_name || ''
+      }
+    } else if (formData.company_id) {
+      const comp = companies.find(c => c.id === formData.company_id)
+      if (comp) {
+        targetPhone = comp.phone || ''
+        clientName = comp.business_name || ''
+      }
+    }
+
+    if (!targetPhone) {
+      alert('Não foi possível encontrar um número de WhatsApp (ou Telefone) para o cliente/empresa selecionado.')
+      return
+    }
+
+    if (confirm(`Deseja enviar uma notificação de status (${formData.status}) para o WhatsApp ${targetPhone}?`)) {
+      setSendingWhatsApp(true)
+      try {
+        const res = await fetch('/api/whatsapp/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orderId: initialData.id,
+            status: formData.status,
+            targetPhone,
+            clientName,
+            orderNumber: initialData.order_number || ''
+          })
+        })
+
+        const data = await res.json()
+        if (!res.ok) {
+          throw new Error(data.error + (data.details ? ` - ${JSON.stringify(data.details)}` : ''))
+        }
+        alert('Notificação enviada com sucesso!')
+      } catch (err: any) {
+        alert(`Erro ao enviar notificação: ${err.message}`)
+      } finally {
+        setSendingWhatsApp(false)
       }
     }
   }
@@ -291,18 +345,33 @@ export function OrderForm({ initialData }: OrderFormProps) {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Status do Pedido</Label>
-                  <select
-                    value={formData.status || 'Orçamento'}
-                    onChange={(e) => handleSelectChange('status', e.target.value)}
-                    className="flex h-9 w-full rounded-md border border-input bg-white px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
-                  >
-                    <option value="Orçamento">Orçamento</option>
-                    <option value="Aprovado">Aprovado</option>
-                    <option value="Em Produção">Em Produção</option>
-                    <option value="Finalizado">Finalizado</option>
-                    <option value="Entregue">Entregue</option>
-                    <option value="Cancelado">Cancelado</option>
-                  </select>
+                  <div className="flex gap-2">
+                    <select
+                      value={formData.status || 'Orçamento'}
+                      onChange={(e) => handleSelectChange('status', e.target.value)}
+                      className="flex h-9 w-full rounded-md border border-input bg-white px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                    >
+                      <option value="Orçamento">Orçamento</option>
+                      <option value="Aprovado">Aprovado</option>
+                      <option value="Em Produção">Em Produção</option>
+                      <option value="Finalizado">Finalizado / Pronto</option>
+                      <option value="Entregue">Entregue</option>
+                      <option value="Cancelado">Cancelado</option>
+                    </select>
+                    {initialData?.id && (
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="icon" 
+                        className="h-9 w-9 shrink-0 text-green-600 border-green-200 hover:text-green-700 hover:bg-green-50"
+                        title="Notificar Cliente via WhatsApp sobre o Status atual"
+                        onClick={handleSendWhatsApp}
+                        disabled={sendingWhatsApp}
+                      >
+                        {sendingWhatsApp ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label>Prazo Previsto</Label>

@@ -16,7 +16,13 @@ export type Settings = {
   bank_agency?: string | null
   bank_account?: string | null
   primary_color?: string | null
-  logo_url?: string | null
+  // WhatsApp API Settings
+  wa_access_token?: string | null
+  wa_phone_number_id?: string | null
+  wa_template_approved?: string | null
+  wa_template_production?: string | null
+  wa_template_ready?: string | null
+  wa_template_delivered?: string | null
 
   updated_at?: string
 }

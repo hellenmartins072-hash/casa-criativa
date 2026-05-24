@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { Loader2, Plus, Building, Percent, Edit, Trash2, Download, DatabaseBackup, Store, Palette } from "lucide-react"
+import { Loader2, Plus, Building, Percent, Edit, Trash2, Download, DatabaseBackup, Store, Palette, MessageCircle } from "lucide-react"
 import {
   Table,
   TableBody,
@@ -53,7 +53,13 @@ export default function SettingsPage() {
     document_number: '',
     phone: '',
     email: '',
-    address: ''
+    address: '',
+    wa_access_token: '',
+    wa_phone_number_id: '',
+    wa_template_approved: '',
+    wa_template_production: '',
+    wa_template_ready: '',
+    wa_template_delivered: ''
   })
   
   const [fees, setFees] = useState<PaymentFee[]>([])
@@ -226,6 +232,9 @@ export default function SettingsPage() {
           </TabsTrigger>
           <TabsTrigger value="stores" className="flex items-center gap-2 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-0">
             <Store className="h-4 w-4" /> Lojas e Perfis
+          </TabsTrigger>
+          <TabsTrigger value="whatsapp" className="flex items-center gap-2 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-0">
+            <MessageCircle className="h-4 w-4" /> WhatsApp Oficial
           </TabsTrigger>
           <TabsTrigger value="fees" className="flex items-center gap-2 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-0">
             <Percent className="h-4 w-4" /> Taxas e Plataformas
@@ -416,6 +425,94 @@ export default function SettingsPage() {
             <CardContent className="pt-6">
               <StoresList />
             </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* TAB WHATSAPP API */}
+        <TabsContent value="whatsapp">
+          <Card>
+            <CardHeader>
+              <CardTitle>Integração Oficial do WhatsApp (Meta)</CardTitle>
+              <CardDescription>
+                Configure as credenciais da Meta Cloud API e os nomes dos Templates Aprovados para disparos automáticos.
+              </CardDescription>
+            </CardHeader>
+            <form onSubmit={handleSaveSettings}>
+              <CardContent className="space-y-4">
+                <div className="bg-blue-50 border border-blue-200 text-blue-800 p-4 rounded-md text-sm mb-4">
+                  <strong>Aviso:</strong> A API Oficial da Meta exige que mensagens iniciadas pela empresa (fora da janela de 24h) sejam enviadas como <strong>Templates Pré-Aprovados</strong> pelo painel do Facebook Developer. Informe o nome exato do template aprovado (ex: <code>pedido_aprovado_v1</code>). <br/><br/>O sistema preencherá as variáveis assim: <br/> <code>{'{{1}}'}</code> = Primeiro Nome do Cliente <br/> <code>{'{{2}}'}</code> = Número do Pedido.
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="wa_access_token">Token de Acesso Permanente</Label>
+                    <Input 
+                      id="wa_access_token" 
+                      type="password"
+                      value={settings.wa_access_token || ''} 
+                      onChange={e => setSettingsData({...settings, wa_access_token: e.target.value})} 
+                      placeholder="EAA..."
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="wa_phone_number_id">ID do Número de Telefone (Phone Number ID)</Label>
+                    <Input 
+                      id="wa_phone_number_id" 
+                      value={settings.wa_phone_number_id || ''} 
+                      onChange={e => setSettingsData({...settings, wa_phone_number_id: e.target.value})} 
+                      placeholder="Ex: 123456789012345"
+                    />
+                  </div>
+                </div>
+
+                <h3 className="font-bold text-gray-800 border-b pb-2 mt-6 mb-4">Nomes dos Templates Aprovados</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="wa_template_approved">Template: Pedido Aprovado</Label>
+                    <Input 
+                      id="wa_template_approved" 
+                      value={settings.wa_template_approved || ''} 
+                      onChange={e => setSettingsData({...settings, wa_template_approved: e.target.value})} 
+                      placeholder="Ex: status_aprovado"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="wa_template_production">Template: Em Produção</Label>
+                    <Input 
+                      id="wa_template_production" 
+                      value={settings.wa_template_production || ''} 
+                      onChange={e => setSettingsData({...settings, wa_template_production: e.target.value})} 
+                      placeholder="Ex: status_producao"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="wa_template_ready">Template: Pronto para Entrega/Retirada</Label>
+                    <Input 
+                      id="wa_template_ready" 
+                      value={settings.wa_template_ready || ''} 
+                      onChange={e => setSettingsData({...settings, wa_template_ready: e.target.value})} 
+                      placeholder="Ex: status_pronto"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="wa_template_delivered">Template: Entregue</Label>
+                    <Input 
+                      id="wa_template_delivered" 
+                      value={settings.wa_template_delivered || ''} 
+                      onChange={e => setSettingsData({...settings, wa_template_delivered: e.target.value})} 
+                      placeholder="Ex: status_entregue"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-end">
+                <Button type="submit" className="bg-[#5C3D8F] hover:bg-[#4a3173] text-white" disabled={savingSettings}>
+                  {savingSettings && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Salvar Configurações
+                </Button>
+              </CardFooter>
+            </form>
           </Card>
         </TabsContent>
 
