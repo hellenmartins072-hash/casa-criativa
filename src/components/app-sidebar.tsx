@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Store, Box, ShoppingCart, DollarSign, Settings, Building, Truck, Package, BookOpen, LogOut, Send } from "lucide-react"
+import { LayoutDashboard, Users, Store, Box, ShoppingCart, DollarSign, Settings, Building, Truck, Package, BookOpen, LogOut, Send, KanbanSquare, Calendar } from "lucide-react"
 import { logout } from "@/app/login/actions"
 import { getSettings } from "@/lib/api/settings"
 
@@ -36,6 +36,16 @@ const items = [
     title: "Pedidos e Orçamentos",
     url: "/orders",
     icon: ShoppingCart,
+  },
+  {
+    title: "Fila de Produção",
+    url: "/production",
+    icon: KanbanSquare,
+  },
+  {
+    title: "Agenda de Entregas",
+    url: "/calendar",
+    icon: Calendar,
   },
   {
     title: "Fretes e Entregas",

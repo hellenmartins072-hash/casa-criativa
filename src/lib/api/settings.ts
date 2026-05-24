@@ -24,6 +24,9 @@ export type Settings = {
   wa_template_ready?: string | null
   wa_template_delivered?: string | null
 
+  // Metas
+  monthly_revenue_goal?: number | null
+
   updated_at?: string
 }
 

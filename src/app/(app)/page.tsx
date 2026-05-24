@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { DollarSign, ShoppingCart, Activity, ArrowUpRight, ArrowDownRight, Award, Gift, Star, Repeat, Building } from "lucide-react"
+import { DollarSign, ShoppingCart, Activity, ArrowUpRight, ArrowDownRight, Award, Gift, Star, Repeat, Building, Target } from "lucide-react"
 import { getDashboardMetrics } from "@/lib/api/finance"
+import { getSettings } from "@/lib/api/settings"
 import { 
   getClientRankingByValue, 
   getB2BPartnerRanking, 
@@ -23,6 +24,7 @@ export default function DashboardPage() {
     birthdays: [],
     vips: []
   })
+  const [settings, setSettings] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -41,11 +43,13 @@ export default function DashboardPage() {
           getB2BPartnerRanking(),
           getRecurringClients(),
           getBirthdayClients(),
-          getVIPSeasonalClients()
+          getVIPSeasonalClients(),
+          getSettings()
         ])
         
         setMetrics(data)
         setAnalytics({ clientRanking, b2bRanking, recurring, birthdays, vips })
+        setSettings(settingsData)
       } catch (error) {
         console.error('Failed to load metrics', error)
       } finally {
@@ -82,6 +86,37 @@ export default function DashboardPage() {
           </p>
         </div>
       </div>
+
+      {/* Meta Mensal Progress Bar */}
+      {settings?.monthly_revenue_goal > 0 && (
+        <Card className="shadow-sm border-blue-100 bg-gradient-to-r from-blue-50 to-transparent">
+          <CardContent className="pt-6">
+            <div className="flex justify-between items-end mb-2">
+              <div className="flex items-center text-blue-800">
+                <Target className="h-5 w-5 mr-2" />
+                <h3 className="font-semibold">Meta do Mês</h3>
+              </div>
+              <div className="text-right">
+                <span className="text-2xl font-bold text-blue-900">
+                  R$ {Number(totalPaidRevenue || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </span>
+                <span className="text-sm text-blue-600 ml-1">
+                  / R$ {Number(settings.monthly_revenue_goal).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            </div>
+            <div className="w-full bg-blue-200 rounded-full h-3">
+              <div 
+                className="bg-blue-600 h-3 rounded-full transition-all duration-500" 
+                style={{ width: `${Math.min(((totalPaidRevenue || 0) / settings.monthly_revenue_goal) * 100, 100)}%` }}
+              ></div>
+            </div>
+            <p className="text-xs text-blue-600 mt-2 text-right">
+              {Math.min(((totalPaidRevenue || 0) / settings.monthly_revenue_goal) * 100, 100).toFixed(1)}% concluído
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {/* Card 1: Receita Real */}

@@ -59,7 +59,8 @@ export default function SettingsPage() {
     wa_template_approved: '',
     wa_template_production: '',
     wa_template_ready: '',
-    wa_template_delivered: ''
+    wa_template_delivered: '',
+    monthly_revenue_goal: 0
   })
   
   const [fees, setFees] = useState<PaymentFee[]>([])
@@ -297,6 +298,22 @@ export default function SettingsPage() {
                       value={settings.address || ''} 
                       onChange={e => setSettingsData({...settings, address: e.target.value})} 
                     />
+                  </div>
+                </div>
+
+                <h3 className="font-bold text-gray-800 border-b pb-2 mt-6 mb-4">Metas e Faturamento</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="monthly_revenue_goal">Meta Mensal de Faturamento (R$)</Label>
+                    <Input 
+                      id="monthly_revenue_goal" 
+                      type="number"
+                      step="0.01"
+                      value={settings.monthly_revenue_goal || 0} 
+                      onChange={e => setSettingsData({...settings, monthly_revenue_goal: parseFloat(e.target.value) || 0})} 
+                      placeholder="Ex: 50000.00"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Defina sua meta para acompanhar o progresso no Dashboard principal.</p>
                   </div>
                 </div>
                 
