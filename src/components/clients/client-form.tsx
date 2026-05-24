@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Loader2, AlertTriangle } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useEffect } from 'react'
+import { ClientTimeline } from '@/components/crm/client-timeline'
 
 interface ClientFormProps {
   initialData?: Client
@@ -103,6 +104,7 @@ export function ClientForm({ initialData, isModal, onSuccess, onCancel }: Client
   }
 
   return (
+    <>
     <Card className={isModal ? "border-0 shadow-none w-full" : "max-w-3xl mx-auto"}>
       {!isModal && (
         <CardHeader>
@@ -330,5 +332,13 @@ export function ClientForm({ initialData, isModal, onSuccess, onCancel }: Client
         </CardFooter>
       </form>
     </Card>
+
+    {/* HISTÓRICO DE CRM */}
+    {initialData?.id && (
+      <div className="mt-8">
+        <ClientTimeline clientId={initialData.id} />
+      </div>
+    )}
+    </>
   )
 }

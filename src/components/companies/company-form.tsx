@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'
 import { Loader2, Plus, Trash2 } from 'lucide-react'
+import { ClientTimeline } from '@/components/crm/client-timeline'
 import { Checkbox } from '@/components/ui/checkbox'
 
 interface CompanyFormProps {
@@ -123,6 +124,7 @@ export function CompanyForm({ initialData, isModal, onSuccess, onCancel }: Compa
   }
 
   return (
+    <>
     <Card className={isModal ? "border-0 shadow-none w-full" : "max-w-3xl mx-auto"}>
       {!isModal && (
         <CardHeader>
@@ -345,5 +347,13 @@ export function CompanyForm({ initialData, isModal, onSuccess, onCancel }: Compa
         </CardFooter>
       </form>
     </Card>
+
+    {/* HISTÓRICO DE CRM */}
+    {initialData?.id && (
+      <div className="mt-8">
+        <ClientTimeline companyId={initialData.id} />
+      </div>
+    )}
+    </>
   )
 }

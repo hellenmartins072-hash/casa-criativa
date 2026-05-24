@@ -12,18 +12,20 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
-import { Loader2, Plus, Trash2, Printer, MessageCircle } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
-import { ClientForm } from '@/components/clients/client-form'
-import { CompanyForm } from '@/components/companies/company-form'
+import { Loader2, Plus, Trash2, Printer, MessageCircle, History, FileSignature, Copy } from 'lucide-react'
+import { ClientTimeline } from '@/components/crm/client-timeline'
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog"
+import { Badge } from '@/components/ui/badge'
+import { ClientForm } from '@/components/clients/client-form'
+import { CompanyForm } from '@/components/companies/company-form'
 
 interface OrderFormProps {
   initialData?: Order
@@ -299,8 +301,28 @@ export function OrderForm({ initialData }: OrderFormProps) {
 
           {/* Seção do Cliente e Dados Principais */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4 p-4 border rounded-lg bg-gray-50/50">
-              <h3 className="font-semibold text-lg">Vínculo do Cliente</h3>
+            <div className="space-y-4 p-4 border rounded-lg bg-gray-50/50 relative">
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="font-semibold text-lg">Vínculo do Cliente</h3>
+                {(formData.client_id || formData.company_id) && (
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button type="button" variant="outline" size="sm" className="h-8 text-[#5C3D8F] border-[#5C3D8F]">
+                        <History className="h-4 w-4 mr-2" /> Histórico CRM
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl">
+                      <DialogHeader>
+                        <DialogTitle>Histórico de Conversas</DialogTitle>
+                      </DialogHeader>
+                      <ClientTimeline 
+                        clientId={formData.client_id || undefined} 
+                        companyId={formData.company_id || undefined} 
+                      />
+                    </DialogContent>
+                  </Dialog>
+                )}
+              </div>
               <div className="space-y-2">
                 <Label>Cliente (Pessoa Física)</Label>
                 <div className="flex gap-2">
@@ -641,19 +663,37 @@ export function OrderForm({ initialData }: OrderFormProps) {
           </div>
 
         </CardContent>
-        <CardFooter className="flex justify-end gap-2 border-t pt-6 bg-muted/10">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.push('/orders')}
-            disabled={loading}
-          >
-            Cancelar
-          </Button>
-          <Button type="submit" className="bg-[#5C3D8F] hover:bg-[#4a3173] text-white" disabled={loading}>
-            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Salvar Pedido
-          </Button>
+        <CardFooter className="flex justify-between p-4 md:p-6 bg-gray-50 border-t mt-6">
+          <div className="flex gap-2">
+            {initialData?.id && (
+              <Button
+                type="button"
+                variant="outline"
+                className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                onClick={() => {
+                  const url = `${window.location.origin}/contract/${initialData.id}`
+                  navigator.clipboard.writeText(url)
+                  alert('Link do Contrato copiado para a área de transferência!')
+                }}
+              >
+                <FileSignature className="mr-2 h-4 w-4" /> Link do Contrato
+              </Button>
+            )}
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.push('/orders')}
+              disabled={loading}
+            >
+              Cancelar
+            </Button>
+            <Button type="submit" className="bg-[#5C3D8F] hover:bg-[#4a3173] text-white" disabled={loading}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Salvar
+            </Button>
+          </div>
         </CardFooter>
       </form>
 
