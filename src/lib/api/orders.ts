@@ -39,6 +39,7 @@ export type Order = {
   delivery_date?: string | null
   shipping_partner_id?: string | null
   out_of_state_shipping?: boolean
+  payment_notes?: string | null
 
   created_at: string
   
@@ -113,7 +114,8 @@ export async function createOrder(orderData: Partial<Order>, items: OrderItem[])
     final_payment_date: orderData.final_payment_date || null,
     delivery_date: orderData.delivery_date || null,
     shipping_partner_id: orderData.shipping_partner_id || null,
-    out_of_state_shipping: orderData.out_of_state_shipping || false
+    out_of_state_shipping: orderData.out_of_state_shipping || false,
+    payment_notes: orderData.payment_notes || null
   }
 
   if (orderData.client_id) payload.client_id = orderData.client_id
@@ -196,7 +198,8 @@ export async function updateOrder(id: string, orderData: Partial<Order>, items: 
     final_payment_date: orderData.final_payment_date,
     delivery_date: orderData.delivery_date,
     shipping_partner_id: orderData.shipping_partner_id,
-    out_of_state_shipping: orderData.out_of_state_shipping
+    out_of_state_shipping: orderData.out_of_state_shipping,
+    payment_notes: orderData.payment_notes
   }
 
   if (orderData.client_id !== undefined) payload.client_id = orderData.client_id

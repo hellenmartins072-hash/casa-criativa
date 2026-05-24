@@ -37,8 +37,22 @@ export async function getSuppliers() {
     .order('created_at', { ascending: false })
 
   if (error) {
-    console.error('Error fetching suppliers:', error)
-    throw error
+    console.warn('Error fetching suppliers with products, falling back to basic query:', error)
+    // Fallback case: the supplier_products table might not exist yet
+    const { data: fallbackData, error: fallbackError } = await supabase
+      .from('suppliers')
+      .select('*')
+      .order('created_at', { ascending: false })
+      
+    if (fallbackError) {
+      console.error('Error in fallback suppliers query:', fallbackError)
+      throw fallbackError
+    }
+    
+    return fallbackData.map(supplier => ({
+      ...supplier,
+      products: []
+    })) as Supplier[]
   }
   
   return data.map(supplier => ({

@@ -175,6 +175,9 @@ export function OutsourcedServicesList({ orderId }: { orderId: string }) {
                     {suppliers.map(sup => (
                       <SelectItem key={sup.id} value={sup.id}>{sup.name}</SelectItem>
                     ))}
+                    {formData.supplier_id && formData.supplier_id !== 'none' && !suppliers.find(s => s.id === formData.supplier_id) && (
+                      <SelectItem value={formData.supplier_id}>Fornecedor Oculto/Excluído ({formData.supplier_id.substring(0,8)})</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </div>

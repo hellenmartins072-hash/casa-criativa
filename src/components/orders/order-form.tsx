@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Order, OrderItem, createOrder, updateOrder } from '@/lib/api/orders'
-import { getClients } from '@/lib/api/clients'
-import { getCompanies } from '@/lib/api/companies'
+import { getClients, createClient } from '@/lib/api/clients'
+import { getCompanies, createCompany } from '@/lib/api/companies'
 import { getActiveProducts, type Product } from '@/lib/api/products'
 import { getShippingPartners, type ShippingPartner } from '@/lib/api/shipping'
 import { Button } from '@/components/ui/button'
@@ -14,6 +14,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Textarea } from '@/components/ui/textarea'
 import { Loader2, Plus, Trash2, Printer } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog"
 
 interface OrderFormProps {
   initialData?: Order
@@ -30,6 +38,16 @@ export function OrderForm({ initialData }: OrderFormProps) {
   const [companies, setCompanies] = useState<any[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [shippingPartners, setShippingPartners] = useState<ShippingPartner[]>([])
+
+  // Modal Novo Cliente
+  const [isNewClientModalOpen, setIsNewClientModalOpen] = useState(false)
+  const [newClientData, setNewClientData] = useState({ full_name: '', whatsapp: '' })
+  const [creatingClient, setCreatingClient] = useState(false)
+
+  // Modal Nova Empresa
+  const [isNewCompanyModalOpen, setIsNewCompanyModalOpen] = useState(false)
+  const [newCompanyData, setNewCompanyData] = useState({ business_name: '', phone: '' })
+  const [creatingCompany, setCreatingCompany] = useState(false)
 
   // Formulário Principal
   const [formData, setFormData] = useState<Partial<Order>>(
@@ -50,7 +68,8 @@ export function OrderForm({ initialData }: OrderFormProps) {
       delivery_date: '',
       shipping_partner_id: null,
       out_of_state_shipping: false,
-      total_amount: 0
+      total_amount: 0,
+      payment_notes: ''
     }
   )
 
@@ -118,6 +137,57 @@ export function OrderForm({ initialData }: OrderFormProps) {
       } else {
         setFormData({ ...formData, [name]: value })
       }
+    }
+  }
+
+  // --- Função Novo Cliente Rápido ---
+  const handleCreateClient = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newClientData.full_name || !newClientData.whatsapp) return
+    setCreatingClient(true)
+    try {
+      const newClient = await createClient({
+        full_name: newClientData.full_name,
+        whatsapp: newClientData.whatsapp,
+        client_type: 'Varejo',
+        status: 'Ativo'
+      })
+      if (newClient) {
+        setClients(prev => [newClient, ...prev])
+        setFormData(prev => ({ ...prev, client_id: newClient.id, company_id: null }))
+        setIsNewClientModalOpen(false)
+        setNewClientData({ full_name: '', whatsapp: '' })
+      }
+    } catch (err) {
+      console.error('Error creating client', err)
+      alert('Erro ao criar cliente')
+    } finally {
+      setCreatingClient(false)
+    }
+  }
+
+  // --- Função Nova Empresa Rápida ---
+  const handleCreateCompany = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newCompanyData.business_name) return
+    setCreatingCompany(true)
+    try {
+      const newCompany = await createCompany({
+        business_name: newCompanyData.business_name,
+        phone: newCompanyData.phone,
+        status: 'Ativo'
+      })
+      if (newCompany) {
+        setCompanies(prev => [newCompany, ...prev])
+        setFormData(prev => ({ ...prev, company_id: newCompany.id, client_id: null }))
+        setIsNewCompanyModalOpen(false)
+        setNewCompanyData({ business_name: '', phone: '' })
+      }
+    } catch (err) {
+      console.error('Error creating company', err)
+      alert('Erro ao criar empresa')
+    } finally {
+      setCreatingCompany(false)
     }
   }
 
@@ -232,30 +302,40 @@ export function OrderForm({ initialData }: OrderFormProps) {
               <h3 className="font-semibold text-lg">Vínculo do Cliente</h3>
               <div className="space-y-2">
                 <Label>Cliente (Pessoa Física)</Label>
-                <select
-                  value={formData.client_id || 'none'}
-                  onChange={(e) => handleSelectChange('client_id', e.target.value)}
-                  className="flex h-9 w-full rounded-md border border-input bg-white px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
-                >
-                  <option value="none">-- Nenhum --</option>
-                  {clients.map(c => (
-                    <option key={c.id} value={c.id}>{c.full_name}</option>
-                  ))}
-                </select>
+                <div className="flex gap-2">
+                  <select
+                    value={formData.client_id || 'none'}
+                    onChange={(e) => handleSelectChange('client_id', e.target.value)}
+                    className="flex h-9 flex-1 rounded-md border border-input bg-white px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                  >
+                    <option value="none">-- Nenhum --</option>
+                    {clients.map(c => (
+                      <option key={c.id} value={c.id}>{c.full_name}</option>
+                    ))}
+                  </select>
+                  <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => setIsNewClientModalOpen(true)} title="Novo Cliente">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
               <div className="text-center text-sm text-muted-foreground">- OU -</div>
               <div className="space-y-2">
                 <Label>Empresa (B2B)</Label>
-                <select
-                  value={formData.company_id || 'none'}
-                  onChange={(e) => handleSelectChange('company_id', e.target.value)}
-                  className="flex h-9 w-full rounded-md border border-input bg-white px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
-                >
-                  <option value="none">-- Nenhuma --</option>
-                  {companies.map(c => (
-                    <option key={c.id} value={c.id}>{c.business_name}</option>
-                  ))}
-                </select>
+                <div className="flex gap-2">
+                  <select
+                    value={formData.company_id || 'none'}
+                    onChange={(e) => handleSelectChange('company_id', e.target.value)}
+                    className="flex h-9 flex-1 rounded-md border border-input bg-white px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                  >
+                    <option value="none">-- Nenhuma --</option>
+                    {companies.map(c => (
+                      <option key={c.id} value={c.id}>{c.business_name}</option>
+                    ))}
+                  </select>
+                  <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => setIsNewCompanyModalOpen(true)} title="Nova Empresa">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
 
@@ -343,6 +423,16 @@ export function OrderForm({ initialData }: OrderFormProps) {
                     value={formData.final_payment_date ? formData.final_payment_date.substring(0, 10) : ''} 
                     onChange={handleChange}
                     className="bg-white"
+                  />
+                </div>
+                <div className="space-y-2 col-span-2">
+                  <Label>Detalhes de Parcelamento / Pagamento</Label>
+                  <Textarea 
+                    name="payment_notes"
+                    value={formData.payment_notes || ''}
+                    onChange={handleChange}
+                    placeholder="Ex: Entrada 50% via PIX em 10/10, mais R$ 200 em 15/10 e o restante na entrega."
+                    className="bg-white min-h-[60px]"
                   />
                 </div>
               </div>
@@ -550,6 +640,80 @@ export function OrderForm({ initialData }: OrderFormProps) {
           </Button>
         </CardFooter>
       </form>
+
+      {/* Modal de Novo Cliente Rápido */}
+      <Dialog open={isNewClientModalOpen} onOpenChange={setIsNewClientModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Novo Cliente Rápido</DialogTitle>
+            <DialogDescription>
+              Cadastre rapidamente um cliente para este pedido. Ele será salvo na aba de Clientes automaticamente.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Nome Completo *</Label>
+              <Input 
+                value={newClientData.full_name} 
+                onChange={e => setNewClientData({...newClientData, full_name: e.target.value})}
+                placeholder="Ex: João da Silva"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>WhatsApp *</Label>
+              <Input 
+                value={newClientData.whatsapp} 
+                onChange={e => setNewClientData({...newClientData, whatsapp: e.target.value})}
+                placeholder="(00) 00000-0000"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsNewClientModalOpen(false)}>Cancelar</Button>
+            <Button onClick={handleCreateClient} disabled={creatingClient || !newClientData.full_name || !newClientData.whatsapp} className="bg-[#5C3D8F] hover:bg-[#4a3173] text-white">
+              {creatingClient && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Nova Empresa Rápida */}
+      <Dialog open={isNewCompanyModalOpen} onOpenChange={setIsNewCompanyModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nova Empresa Rápida</DialogTitle>
+            <DialogDescription>
+              Cadastre rapidamente uma empresa para este pedido. Ela será salva na aba de Empresas automaticamente.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Nome da Empresa (Razão Social ou Fantasia) *</Label>
+              <Input 
+                value={newCompanyData.business_name} 
+                onChange={e => setNewCompanyData({...newCompanyData, business_name: e.target.value})}
+                placeholder="Ex: Minha Empresa LTDA"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Telefone / WhatsApp</Label>
+              <Input 
+                value={newCompanyData.phone} 
+                onChange={e => setNewCompanyData({...newCompanyData, phone: e.target.value})}
+                placeholder="(00) 00000-0000"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsNewCompanyModalOpen(false)}>Cancelar</Button>
+            <Button onClick={handleCreateCompany} disabled={creatingCompany || !newCompanyData.business_name} className="bg-[#5C3D8F] hover:bg-[#4a3173] text-white">
+              {creatingCompany && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   )
 }
