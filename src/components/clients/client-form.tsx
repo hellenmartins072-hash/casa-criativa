@@ -16,9 +16,12 @@ import { useEffect } from 'react'
 
 interface ClientFormProps {
   initialData?: Client
+  isModal?: boolean
+  onSuccess?: (client: Client) => void
+  onCancel?: () => void
 }
 
-export function ClientForm({ initialData }: ClientFormProps) {
+export function ClientForm({ initialData, isModal, onSuccess, onCancel }: ClientFormProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -79,13 +82,19 @@ export function ClientForm({ initialData }: ClientFormProps) {
     setError('')
 
     try {
+      let savedClient;
       if (initialData?.id) {
-        await updateClient(initialData.id, formData)
+        savedClient = await updateClient(initialData.id, formData)
       } else {
-        await createClient(formData)
+        savedClient = await createClient(formData)
       }
-      router.push('/clients')
-      router.refresh()
+      
+      if (isModal && onSuccess) {
+        onSuccess(savedClient || formData as Client)
+      } else {
+        router.push('/clients')
+        router.refresh()
+      }
     } catch (err: any) {
       setError(err.message || 'Ocorreu um erro ao salvar o cliente.')
     } finally {
@@ -94,13 +103,15 @@ export function ClientForm({ initialData }: ClientFormProps) {
   }
 
   return (
-    <Card className="max-w-3xl mx-auto">
-      <CardHeader>
-        <CardTitle>{initialData ? 'Editar Cliente' : 'Novo Cliente'}</CardTitle>
-        <CardDescription>
-          Preencha os dados do cliente abaixo. Os campos marcados com * são obrigatórios.
-        </CardDescription>
-      </CardHeader>
+    <Card className={isModal ? "border-0 shadow-none w-full" : "max-w-3xl mx-auto"}>
+      {!isModal && (
+        <CardHeader>
+          <CardTitle>{initialData ? 'Editar Cliente' : 'Novo Cliente'}</CardTitle>
+          <CardDescription>
+            Preencha os dados do cliente abaixo. Os campos marcados com * são obrigatórios.
+          </CardDescription>
+        </CardHeader>
+      )}
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-6">
           {error && <div className="text-red-500 text-sm">{error}</div>}
@@ -307,7 +318,7 @@ export function ClientForm({ initialData }: ClientFormProps) {
           <Button
             type="button"
             variant="outline"
-            onClick={() => router.push('/clients')}
+            onClick={() => isModal && onCancel ? onCancel() : router.push('/clients')}
             disabled={loading}
           >
             Cancelar

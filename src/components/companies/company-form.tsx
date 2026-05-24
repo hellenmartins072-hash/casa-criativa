@@ -13,9 +13,12 @@ import { Checkbox } from '@/components/ui/checkbox'
 
 interface CompanyFormProps {
   initialData?: Company
+  isModal?: boolean
+  onSuccess?: (company: Company) => void
+  onCancel?: () => void
 }
 
-export function CompanyForm({ initialData }: CompanyFormProps) {
+export function CompanyForm({ initialData, isModal, onSuccess, onCancel }: CompanyFormProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -104,8 +107,14 @@ export function CompanyForm({ initialData }: CompanyFormProps) {
           await createCompanyContact({ ...contact, company_id: companyId })
         }
       }
-      router.push('/companies')
-      router.refresh()
+      if (isModal && onSuccess) {
+        // Fetch the full company to pass back if needed, or just pass the payload
+        // Since we need the ID, and we have it:
+        onSuccess({ ...payloadToSave, id: companyId } as Company)
+      } else {
+        router.push('/companies')
+        router.refresh()
+      }
     } catch (err: any) {
       setError(err.message || 'Ocorreu um erro ao salvar a empresa.')
     } finally {
@@ -114,13 +123,15 @@ export function CompanyForm({ initialData }: CompanyFormProps) {
   }
 
   return (
-    <Card className="max-w-3xl mx-auto">
-      <CardHeader>
-        <CardTitle>{initialData ? 'Editar Empresa' : 'Nova Empresa'}</CardTitle>
-        <CardDescription>
-          Preencha os dados da empresa (B2B) abaixo. Os campos marcados com * são obrigatórios.
-        </CardDescription>
-      </CardHeader>
+    <Card className={isModal ? "border-0 shadow-none w-full" : "max-w-3xl mx-auto"}>
+      {!isModal && (
+        <CardHeader>
+          <CardTitle>{initialData ? 'Editar Empresa' : 'Nova Empresa'}</CardTitle>
+          <CardDescription>
+            Preencha os dados da empresa (B2B) abaixo. Os campos marcados com * são obrigatórios.
+          </CardDescription>
+        </CardHeader>
+      )}
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-6">
           {error && <div className="text-red-500 text-sm">{error}</div>}
@@ -322,7 +333,7 @@ export function CompanyForm({ initialData }: CompanyFormProps) {
           <Button
             type="button"
             variant="outline"
-            onClick={() => router.push('/companies')}
+            onClick={() => isModal && onCancel ? onCancel() : router.push('/companies')}
             disabled={loading}
           >
             Cancelar

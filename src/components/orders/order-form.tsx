@@ -14,6 +14,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Textarea } from '@/components/ui/textarea'
 import { Loader2, Plus, Trash2, Printer } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { ClientForm } from '@/components/clients/client-form'
+import { CompanyForm } from '@/components/companies/company-form'
 import {
   Dialog,
   DialogContent,
@@ -41,13 +43,9 @@ export function OrderForm({ initialData }: OrderFormProps) {
 
   // Modal Novo Cliente
   const [isNewClientModalOpen, setIsNewClientModalOpen] = useState(false)
-  const [newClientData, setNewClientData] = useState({ full_name: '', whatsapp: '' })
-  const [creatingClient, setCreatingClient] = useState(false)
 
   // Modal Nova Empresa
   const [isNewCompanyModalOpen, setIsNewCompanyModalOpen] = useState(false)
-  const [newCompanyData, setNewCompanyData] = useState({ business_name: '', phone: '' })
-  const [creatingCompany, setCreatingCompany] = useState(false)
 
   // Formulário Principal
   const [formData, setFormData] = useState<Partial<Order>>(
@@ -137,57 +135,6 @@ export function OrderForm({ initialData }: OrderFormProps) {
       } else {
         setFormData({ ...formData, [name]: value })
       }
-    }
-  }
-
-  // --- Função Novo Cliente Rápido ---
-  const handleCreateClient = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newClientData.full_name || !newClientData.whatsapp) return
-    setCreatingClient(true)
-    try {
-      const newClient = await createClient({
-        full_name: newClientData.full_name,
-        whatsapp: newClientData.whatsapp,
-        client_type: 'Varejo',
-        status: 'Ativo'
-      })
-      if (newClient) {
-        setClients(prev => [newClient, ...prev])
-        setFormData(prev => ({ ...prev, client_id: newClient.id, company_id: null }))
-        setIsNewClientModalOpen(false)
-        setNewClientData({ full_name: '', whatsapp: '' })
-      }
-    } catch (err) {
-      console.error('Error creating client', err)
-      alert('Erro ao criar cliente')
-    } finally {
-      setCreatingClient(false)
-    }
-  }
-
-  // --- Função Nova Empresa Rápida ---
-  const handleCreateCompany = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newCompanyData.business_name) return
-    setCreatingCompany(true)
-    try {
-      const newCompany = await createCompany({
-        business_name: newCompanyData.business_name,
-        phone: newCompanyData.phone,
-        status: 'Ativo'
-      })
-      if (newCompany) {
-        setCompanies(prev => [newCompany, ...prev])
-        setFormData(prev => ({ ...prev, company_id: newCompany.id, client_id: null }))
-        setIsNewCompanyModalOpen(false)
-        setNewCompanyData({ business_name: '', phone: '' })
-      }
-    } catch (err) {
-      console.error('Error creating company', err)
-      alert('Erro ao criar empresa')
-    } finally {
-      setCreatingCompany(false)
     }
   }
 
@@ -641,77 +588,39 @@ export function OrderForm({ initialData }: OrderFormProps) {
         </CardFooter>
       </form>
 
-      {/* Modal de Novo Cliente Rápido */}
+      {/* Modal de Novo Cliente */}
       <Dialog open={isNewClientModalOpen} onOpenChange={setIsNewClientModalOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Novo Cliente Rápido</DialogTitle>
-            <DialogDescription>
-              Cadastre rapidamente um cliente para este pedido. Ele será salvo na aba de Clientes automaticamente.
-            </DialogDescription>
+            <DialogTitle>Novo Cliente</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Nome Completo *</Label>
-              <Input 
-                value={newClientData.full_name} 
-                onChange={e => setNewClientData({...newClientData, full_name: e.target.value})}
-                placeholder="Ex: João da Silva"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>WhatsApp *</Label>
-              <Input 
-                value={newClientData.whatsapp} 
-                onChange={e => setNewClientData({...newClientData, whatsapp: e.target.value})}
-                placeholder="(00) 00000-0000"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsNewClientModalOpen(false)}>Cancelar</Button>
-            <Button onClick={handleCreateClient} disabled={creatingClient || !newClientData.full_name || !newClientData.whatsapp} className="bg-[#5C3D8F] hover:bg-[#4a3173] text-white">
-              {creatingClient && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Salvar
-            </Button>
-          </DialogFooter>
+          <ClientForm 
+            isModal 
+            onSuccess={(client) => {
+              setClients(prev => [client, ...prev])
+              setFormData(prev => ({ ...prev, client_id: client.id, company_id: null }))
+              setIsNewClientModalOpen(false)
+            }} 
+            onCancel={() => setIsNewClientModalOpen(false)}
+          />
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Nova Empresa Rápida */}
+      {/* Modal de Nova Empresa */}
       <Dialog open={isNewCompanyModalOpen} onOpenChange={setIsNewCompanyModalOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Nova Empresa Rápida</DialogTitle>
-            <DialogDescription>
-              Cadastre rapidamente uma empresa para este pedido. Ela será salva na aba de Empresas automaticamente.
-            </DialogDescription>
+            <DialogTitle>Nova Empresa</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Nome da Empresa (Razão Social ou Fantasia) *</Label>
-              <Input 
-                value={newCompanyData.business_name} 
-                onChange={e => setNewCompanyData({...newCompanyData, business_name: e.target.value})}
-                placeholder="Ex: Minha Empresa LTDA"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Telefone / WhatsApp</Label>
-              <Input 
-                value={newCompanyData.phone} 
-                onChange={e => setNewCompanyData({...newCompanyData, phone: e.target.value})}
-                placeholder="(00) 00000-0000"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsNewCompanyModalOpen(false)}>Cancelar</Button>
-            <Button onClick={handleCreateCompany} disabled={creatingCompany || !newCompanyData.business_name} className="bg-[#5C3D8F] hover:bg-[#4a3173] text-white">
-              {creatingCompany && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Salvar
-            </Button>
-          </DialogFooter>
+          <CompanyForm 
+            isModal 
+            onSuccess={(company) => {
+              setCompanies(prev => [company, ...prev])
+              setFormData(prev => ({ ...prev, company_id: company.id, client_id: null }))
+              setIsNewCompanyModalOpen(false)
+            }} 
+            onCancel={() => setIsNewCompanyModalOpen(false)}
+          />
         </DialogContent>
       </Dialog>
     </Card>
