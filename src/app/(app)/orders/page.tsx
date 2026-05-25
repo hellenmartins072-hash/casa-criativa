@@ -72,11 +72,13 @@ export default function OrdersPage() {
   const filteredOrders = orders.filter(order => {
     const clientName = order.clients?.full_name || ''
     const companyName = order.companies?.trading_name || order.companies?.business_name || ''
+    const resellerName = order.resellers?.full_name || ''
     const orderStr = order.order_number?.toString() || ''
     const search = searchQuery.toLowerCase()
     
     return clientName.toLowerCase().includes(search) || 
            companyName.toLowerCase().includes(search) ||
+           resellerName.toLowerCase().includes(search) ||
            orderStr.includes(search)
   })
 
@@ -164,7 +166,7 @@ export default function OrdersPage() {
                         </TableCell>
                         <TableCell>
                           <div className="font-medium text-gray-900">
-                            {order.clients?.full_name || order.companies?.trading_name || order.companies?.business_name || 'Cliente Removido'}
+                            {order.clients?.full_name || order.companies?.trading_name || order.companies?.business_name || order.resellers?.full_name || 'Cliente Removido'}
                           </div>
                         </TableCell>
                         <TableCell>
