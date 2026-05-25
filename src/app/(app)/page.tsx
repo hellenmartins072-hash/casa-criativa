@@ -13,6 +13,7 @@ import {
   getBirthdayClients, 
   getVIPSeasonalClients,
   getInactiveClients,
+  getPendingFollowUps
 } from "@/lib/api/analytics"
 import { getCurrentProfile } from "@/lib/api/profiles"
 import { Skeleton } from "@/components/ui/skeleton"
