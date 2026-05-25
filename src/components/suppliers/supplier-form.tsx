@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Supplier, createSupplier, updateSupplier, createSupplierProduct, updateSupplierProduct, deleteSupplierProduct, type SupplierProduct } from '@/lib/api/suppliers'
+import { Supplier, createSupplier, updateSupplier, createSupplierProduct, updateSupplierProduct, deleteSupplierProduct, deleteSupplier, type SupplierProduct } from '@/lib/api/suppliers'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -67,6 +67,23 @@ export function SupplierForm({ initialData }: SupplierFormProps) {
     const newProducts = [...products]
     newProducts.splice(index, 1)
     setProducts(newProducts)
+  }
+
+  const handleDeleteSupplier = async () => {
+    if (!initialData?.id) return
+    
+    if (confirm("ATENÇÃO: Deseja realmente EXCLUIR este fornecedor? Esta ação não pode ser desfeita e pode afetar produtos vinculados a ele.")) {
+      setLoading(true)
+      try {
+        await deleteSupplier(initialData.id)
+        router.push('/suppliers')
+        router.refresh()
+      } catch (err: any) {
+        console.error("ERRO AO EXCLUIR FORNECEDOR:", err)
+        alert("Erro ao excluir fornecedor. Verifique se ele possui vínculos.")
+        setLoading(false)
+      }
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -319,19 +336,33 @@ export function SupplierForm({ initialData }: SupplierFormProps) {
 
           </div>
         </CardContent>
-        <CardFooter className="flex justify-end gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.push('/suppliers')}
-            disabled={loading}
-          >
-            Cancelar
-          </Button>
-          <Button type="submit" className="bg-[#5C3D8F] hover:bg-[#4a3173] text-white" disabled={loading}>
-            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Salvar
-          </Button>
+        <CardFooter className="flex justify-between border-t p-6 mt-4">
+          <div>
+            {initialData?.id && (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={handleDeleteSupplier}
+                disabled={loading}
+              >
+                Excluir Fornecedor
+              </Button>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.push('/suppliers')}
+              disabled={loading}
+            >
+              Cancelar
+            </Button>
+            <Button type="submit" className="bg-[#5C3D8F] hover:bg-[#4a3173] text-white" disabled={loading}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Salvar
+            </Button>
+          </div>
         </CardFooter>
       </form>
     </Card>

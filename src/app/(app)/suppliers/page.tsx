@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Plus, Search, MoreHorizontal, Truck, Box, TrendingDown } from 'lucide-react'
-import { getSuppliers, type Supplier } from '@/lib/api/suppliers'
+import { getSuppliers, deleteSupplier, type Supplier } from '@/lib/api/suppliers'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -45,6 +45,18 @@ export default function SuppliersPage() {
     }
     loadSuppliers()
   }, [])
+
+  const handleDelete = async (id: string) => {
+    if (confirm("ATENÇÃO: Deseja realmente EXCLUIR este fornecedor? Esta ação não pode ser desfeita e pode afetar produtos vinculados a ele.")) {
+      try {
+        await deleteSupplier(id)
+        setSuppliers(prev => prev.filter(s => s.id !== id))
+      } catch (error) {
+        console.error("Erro ao excluir fornecedor", error)
+        alert("Erro ao excluir fornecedor. Verifique se ele não possui vínculos ativos.")
+      }
+    }
+  }
 
   const filteredSuppliers = suppliers.filter(supplier => 
     supplier.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -156,9 +168,18 @@ export default function SuppliersPage() {
                               <MoreHorizontal className="h-4 w-4" />
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Ações</DropdownMenuLabel>
                               <DropdownMenuItem className="cursor-pointer" onClick={() => router.push(`/suppliers/${supplier.id}`)}>
                                 Editar / Visualizar
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                className="cursor-pointer text-red-600 focus:text-red-700 focus:bg-red-50" 
+                                onSelect={(e) => {
+                                  e.preventDefault()
+                                  setTimeout(() => handleDelete(supplier.id), 100)
+                                }}
+                              >
+                                Excluir
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
