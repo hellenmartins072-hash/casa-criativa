@@ -7,6 +7,7 @@ export type UserProfile = {
   role: UserRole
   company_id?: string | null
   client_id?: string | null
+  reseller_id?: string | null
   created_at: string
 }
 

@@ -364,11 +364,38 @@ export function OrderForm({ initialData }: OrderFormProps) {
       if (finalFormData.client_id === '') finalFormData.client_id = null
       if (finalFormData.company_id === '') finalFormData.company_id = null
 
+      let savedOrder;
       if (initialData?.id) {
-        await updateOrder(initialData.id, finalFormData, items)
+        savedOrder = await updateOrder(initialData.id, finalFormData, items)
       } else {
-        await createOrder(finalFormData, items)
+        savedOrder = await createOrder(finalFormData, items)
       }
+
+      // WhatsApp Notification Logic
+      if (initialData?.status !== finalFormData.status && finalFormData.status !== 'Orçamento') {
+        const selectedClient = clients.find(c => c.id === finalFormData.client_id)
+        const selectedCompany = companies.find(c => c.id === finalFormData.company_id)
+        const clientPhone = selectedClient?.whatsapp || selectedCompany?.whatsapp || selectedClient?.phone || selectedCompany?.phone
+        const clientName = selectedClient?.full_name || selectedCompany?.business_name
+
+        if (clientPhone) {
+          try {
+            await fetch('/api/whatsapp/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                phone: clientPhone,
+                clientName: clientName,
+                orderNumber: savedOrder?.order_number || initialData?.order_number || '',
+                status: finalFormData.status
+              })
+            })
+          } catch (err) {
+            console.error("Erro ao enviar WhatsApp:", err)
+          }
+        }
+      }
+
       router.push('/orders')
       router.refresh()
     } catch (err: any) {

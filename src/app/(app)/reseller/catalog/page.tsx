@@ -18,6 +18,20 @@ export default async function ResellerCatalog() {
     .eq('is_active', true)
     .order('name')
 
+  // Buscar dados do revendedor para aplicar o desconto
+  let discountPercentage = 0
+  if (profile.reseller_id) {
+    const { data: reseller } = await supabase
+      .from('resellers')
+      .select('discount_percentage')
+      .eq('id', profile.reseller_id)
+      .single()
+    
+    if (reseller) {
+      discountPercentage = Number(reseller.discount_percentage) || 0
+    }
+  }
+
   return (
     <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
       <div>
@@ -49,7 +63,9 @@ export default async function ResellerCatalog() {
                 <div>
                   <p className="text-[10px] uppercase font-bold text-gray-400">Preço Revenda</p>
                   <p className="text-lg font-bold text-[#5C3D8F]">
-                    R$ {Number(product.price_resale || product.price_retail || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    R$ {Number(
+                      (product.price_retail || 0) * (1 - (discountPercentage / 100))
+                    ).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
                 <div className="text-right">

@@ -54,7 +54,13 @@ INSERT INTO public.user_profiles (id, role)
 SELECT id, 'admin' FROM auth.users
 ON CONFLICT (id) DO NOTHING;
 
--- ATENÇÃO: Para o Storage, você precisará executar no painel SQL do Supabase:
--- insert into storage.buckets (id, name, public) values ('order-files', 'order-files', true);
--- CREATE POLICY "Acesso publico aos arquivos" ON storage.objects FOR SELECT USING ( bucket_id = 'order-files' );
--- CREATE POLICY "Upload de arquivos" ON storage.objects FOR INSERT WITH CHECK ( bucket_id = 'order-files' );
+-- Criar o Bucket de Storage para Arquivos de Pedidos
+INSERT INTO storage.buckets (id, name, public) VALUES ('order-files', 'order-files', true) ON CONFLICT (id) DO NOTHING;
+
+-- Criar políticas de segurança para o Bucket
+DROP POLICY IF EXISTS "Acesso publico aos arquivos" ON storage.objects;
+CREATE POLICY "Acesso publico aos arquivos" ON storage.objects FOR SELECT USING ( bucket_id = 'order-files' );
+
+DROP POLICY IF EXISTS "Upload de arquivos" ON storage.objects;
+CREATE POLICY "Upload de arquivos" ON storage.objects FOR INSERT WITH CHECK ( bucket_id = 'order-files' );
+CREATE POLICY "Excluir arquivos" ON storage.objects FOR DELETE USING ( bucket_id = 'order-files' );

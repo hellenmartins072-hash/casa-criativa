@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Store, Box, ShoppingCart, DollarSign, Settings, Building, Truck, Package, BookOpen, LogOut, Send, KanbanSquare, Calendar, BarChart3, Image as ImageIcon, Megaphone, PlusCircle } from "lucide-react"
+import { LayoutDashboard, Users, Store, Box, ShoppingCart, DollarSign, Settings, Building, Truck, Package, BookOpen, LogOut, Send, KanbanSquare, Calendar, BarChart3, Image as ImageIcon, Megaphone, PlusCircle, Handshake } from "lucide-react"
 import { logout } from "@/app/login/actions"
 import { getSettings } from "@/lib/api/settings"
 import { getCurrentProfile } from "@/lib/api/profiles"
@@ -32,6 +32,11 @@ const items = [
     title: "Empresas B2B",
     url: "/companies",
     icon: Building,
+  },
+  {
+    title: "Revendedores",
+    url: "/resellers",
+    icon: Handshake,
   },
   {
     title: "Pedidos e Orçamentos",

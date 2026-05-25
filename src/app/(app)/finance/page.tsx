@@ -18,7 +18,9 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { FinanceDashboard } from '@/components/finance/finance-dashboard'
+import { AlertCircle } from 'lucide-react'
 
 export default function FinancePage() {
   const [transactions, setTransactions] = useState<FinancialTransaction[]>([])
@@ -71,6 +73,8 @@ export default function FinancePage() {
     t.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
     t.category?.toLowerCase().includes(searchQuery.toLowerCase())
   )
+
+  const contasAPagar = transactions.filter(t => t.type === 'Despesa' && t.status === 'Pendente')
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -288,97 +292,184 @@ export default function FinancePage() {
         </div>
       </div>
 
-      <FinanceDashboard />
+      <Tabs defaultValue="resumo" className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="resumo">Resumo Financeiro</TabsTrigger>
+          <TabsTrigger value="extrato">Extrato Geral</TabsTrigger>
+          <TabsTrigger value="contas-a-pagar" className="relative">
+            Contas a Pagar
+            {contasAPagar.length > 0 && (
+              <span className="ml-2 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">
+                {contasAPagar.length}
+              </span>
+            )}
+          </TabsTrigger>
+        </TabsList>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Histórico de Transações</CardTitle>
-          <div className="flex items-center pt-4">
-            <div className="relative w-full max-w-sm">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Buscar lançamento..."
-                className="pl-8"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="space-y-2">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-            </div>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Descrição</TableHead>
-                    <TableHead>Categoria</TableHead>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Valor</TableHead>
-                    <TableHead>Conta</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredTransactions.length === 0 ? (
+        <TabsContent value="resumo" className="space-y-6">
+          <FinanceDashboard transactions={transactions} bankAccounts={accounts} />
+        </TabsContent>
+
+        <TabsContent value="extrato">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle>Histórico de Transações</CardTitle>
+              <CardDescription>Todas as entradas e saídas registradas.</CardDescription>
+              <div className="flex items-center pt-4">
+                <div className="relative w-full max-w-sm">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="search"
+                    placeholder="Buscar lançamento..."
+                    className="pl-8"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+              ) : (
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Descrição</TableHead>
+                        <TableHead>Categoria</TableHead>
+                        <TableHead>Data</TableHead>
+                        <TableHead>Valor</TableHead>
+                        <TableHead>Conta</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredTransactions.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                            Nenhum lançamento encontrado.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        filteredTransactions.map((tx) => (
+                          <TableRow key={tx.id}>
+                            <TableCell className="font-medium">
+                              <div className="flex items-center gap-2">
+                                {tx.type === 'Receita' ? <ArrowUpRight className="text-green-500 w-4 h-4" /> : <ArrowDownRight className="text-red-500 w-4 h-4" />}
+                                {tx.description}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {tx.category || '-'}
+                            </TableCell>
+                            <TableCell>
+                              {new Date(tx.due_date).toLocaleDateString('pt-BR')}
+                            </TableCell>
+                            <TableCell className={`font-semibold ${tx.type === 'Receita' ? 'text-green-600' : 'text-red-600'}`}>
+                              {tx.type === 'Despesa' && '- '}R$ {Number(tx.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground">
+                              {(tx as any).bank_accounts?.name || '-'}
+                            </TableCell>
+                            <TableCell>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => toggleStatus(tx)}
+                                className={`h-6 px-2 text-xs font-semibold rounded-full ${tx.status === 'Pago' ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'}`}
+                              >
+                                {tx.status}
+                              </Button>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button variant="ghost" size="icon" onClick={() => handleDelete(tx.id)}>
+                                <Trash2 className="h-4 w-4 text-red-400 hover:text-red-600" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="contas-a-pagar">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle>Contas a Pagar</CardTitle>
+              <CardDescription>Gerencie suas despesas pendentes e não perca vencimentos.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-md border overflow-x-auto">
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                        Nenhum lançamento encontrado.
-                      </TableCell>
+                      <TableHead>Vencimento</TableHead>
+                      <TableHead>Descrição</TableHead>
+                      <TableHead>Categoria</TableHead>
+                      <TableHead className="text-right">Valor</TableHead>
+                      <TableHead className="text-center">Status</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
-                  ) : (
-                    filteredTransactions.map((tx) => (
-                      <TableRow key={tx.id}>
-                        <TableCell className="font-medium">
-                          <div className="flex items-center gap-2">
-                            {tx.type === 'Receita' ? <ArrowUpRight className="text-green-500 w-4 h-4" /> : <ArrowDownRight className="text-red-500 w-4 h-4" />}
-                            {tx.description}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {tx.category || '-'}
-                        </TableCell>
-                        <TableCell>
-                          {new Date(tx.due_date).toLocaleDateString('pt-BR')}
-                        </TableCell>
-                        <TableCell className={`font-semibold ${tx.type === 'Receita' ? 'text-green-600' : 'text-red-600'}`}>
-                          {tx.type === 'Despesa' && '- '}R$ {Number(tx.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
-                          {(tx as any).bank_accounts?.name || '-'}
-                        </TableCell>
-                        <TableCell>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => toggleStatus(tx)}
-                            className={`h-6 px-2 text-xs font-semibold rounded-full ${tx.status === 'Pago' ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'}`}
-                          >
-                            {tx.status}
-                          </Button>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button variant="ghost" size="icon" onClick={() => handleDelete(tx.id)}>
-                             <Trash2 className="h-4 w-4 text-red-400 hover:text-red-600" />
-                          </Button>
+                  </TableHeader>
+                  <TableBody>
+                    {contasAPagar.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
+                          Nenhuma conta a pagar pendente 🎉
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                    ) : (
+                      contasAPagar.sort((a,b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime()).map(t => {
+                        const isOverdue = new Date(t.due_date) < new Date() && t.status === 'Pendente'
+                        return (
+                        <TableRow key={t.id} className={isOverdue ? "bg-red-50/50" : ""}>
+                          <TableCell className="whitespace-nowrap flex items-center gap-2">
+                            {isOverdue && <AlertCircle className="w-4 h-4 text-red-500" />}
+                            <span className={isOverdue ? "text-red-600 font-bold" : ""}>
+                              {new Date(t.due_date).toLocaleDateString('pt-BR')}
+                            </span>
+                          </TableCell>
+                          <TableCell className="font-medium">{t.description}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{t.category}</Badge>
+                          </TableCell>
+                          <TableCell className="text-right font-bold text-red-600">
+                            R$ {Number(t.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Badge variant="secondary" className="bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200">
+                              Pendente
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right space-x-2">
+                            <Button variant="outline" size="sm" onClick={() => toggleStatus(t)}>
+                              Dar Baixa
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => handleDelete(t.id)}>
+                              <Trash2 className="w-4 h-4 text-red-400" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      )})
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
