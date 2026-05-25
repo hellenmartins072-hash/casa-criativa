@@ -352,8 +352,8 @@ export function OrderForm({ initialData }: OrderFormProps) {
     setError('')
 
     // Validations
-    if (!formData.client_id && !formData.company_id) {
-      setError('Selecione um Cliente ou Empresa.')
+    if (!formData.client_id && !formData.company_id && !formData.reseller_id) {
+      setError('Selecione um Cliente, Empresa ou Revendedor.')
       setLoading(false)
       return
     }
