@@ -45,7 +45,7 @@ export type Order = {
   
   // Relações que vamos puxar do banco
   clients?: { full_name: string } | null
-  companies?: { business_name: string } | null
+  companies?: { business_name: string, trading_name?: string } | null
   items?: OrderItem[]
 }
 
@@ -55,7 +55,7 @@ export async function getOrders() {
     .select(`
       *,
       clients(full_name),
-      companies(business_name)
+      companies(business_name, trading_name)
     `)
     .order('created_at', { ascending: false })
 
@@ -73,7 +73,7 @@ export async function getOrder(id: string) {
     .select(`
       *,
       clients(full_name, whatsapp, email),
-      companies(business_name, phone, cnpj)
+      companies(business_name, trading_name, phone, cnpj)
     `)
     .eq('id', id)
     .single()

@@ -359,10 +359,14 @@ export function OrderForm({ initialData }: OrderFormProps) {
     }
 
     try {
+      let finalFormData = { ...formData }
+      if (finalFormData.client_id === '') finalFormData.client_id = null
+      if (finalFormData.company_id === '') finalFormData.company_id = null
+
       if (initialData?.id) {
-        await updateOrder(initialData.id, formData, items)
+        await updateOrder(initialData.id, finalFormData, items)
       } else {
-        await createOrder(formData, items)
+        await createOrder(finalFormData, items)
       }
       router.push('/orders')
       router.refresh()

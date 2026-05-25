@@ -51,7 +51,7 @@ export default function OrderPdfPage({ params }: { params: Promise<{ id: string 
     return <div className="p-10 text-center text-red-500">Pedido não encontrado.</div>
   }
 
-  const clientName = order.clients?.full_name || order.companies?.business_name || 'Cliente Removido'
+  const clientName = order.clients?.full_name || order.companies?.trading_name || order.companies?.business_name || 'Cliente Removido'
   // Identifica se é orçamento ou pedido firme
   const docTitle = order.status === 'Orçamento' ? 'PROPOSTA COMERCIAL / ORÇAMENTO' : 'PEDIDO DE VENDA'
 

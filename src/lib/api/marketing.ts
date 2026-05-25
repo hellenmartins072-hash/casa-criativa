@@ -90,7 +90,7 @@ export async function getCouponByCode(code: string) {
 
 // --- WhatsApp Script Generator ---
 export function generateWhatsAppBudgetScript(order: any) {
-  const clientName = order.clients?.full_name || order.companies?.business_name || 'Cliente'
+  const clientName = order.clients?.full_name || order.companies?.trading_name || order.companies?.business_name || 'Cliente'
   const itemsList = order.items?.map((item: any) => 
     `• ${item.quantity}x ${item.product_name} - R$ ${Number(item.total_price).toFixed(2).replace('.', ',')}`
   ).join('\n') || ''
