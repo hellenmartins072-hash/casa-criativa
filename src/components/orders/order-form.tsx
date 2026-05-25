@@ -8,6 +8,7 @@ import { getCompanies, createCompany } from '@/lib/api/companies'
 import { getShippingPartners, type ShippingPartner } from '@/lib/api/shipping'
 import { getOrderChecklist, createChecklistStep, toggleChecklistStep, deleteChecklistStep, getOrderReworks, registerRework, deleteRework, type OrderChecklist, type OrderRework } from '@/lib/api/operations'
 import { generateWhatsAppBudgetScript, getCouponByCode } from '@/lib/api/marketing'
+import { FileUpload } from './file-upload'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -819,10 +820,21 @@ export function OrderForm({ initialData }: OrderFormProps) {
 
           {/* Fechamento / Totais */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label>Observações Gerais do Pedido</Label>
-              <Textarea 
-                name="notes"
+            <div className="space-y-6">
+              {initialData?.id && (
+                <div className="space-y-2">
+                  <Label className="text-lg font-bold text-[#5C3D8F]">Anexos do Pedido</Label>
+                  <FileUpload 
+                    orderId={initialData.id} 
+                    clientName={clients.find(c => c.id === formData.client_id)?.full_name || companies.find(c => c.id === formData.company_id)?.business_name} 
+                  />
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label>Observações Gerais do Pedido</Label>
+                <Textarea 
+                  name="notes"
                 value={formData.notes || ''}
                 onChange={handleChange}
                 className="min-h-[100px]"

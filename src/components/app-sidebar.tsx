@@ -1,6 +1,7 @@
-import { LayoutDashboard, Users, Store, Box, ShoppingCart, DollarSign, Settings, Building, Truck, Package, BookOpen, LogOut, Send, KanbanSquare, Calendar, BarChart3, Image as ImageIcon, Megaphone } from "lucide-react"
+import { LayoutDashboard, Users, Store, Box, ShoppingCart, DollarSign, Settings, Building, Truck, Package, BookOpen, LogOut, Send, KanbanSquare, Calendar, BarChart3, Image as ImageIcon, Megaphone, PlusCircle } from "lucide-react"
 import { logout } from "@/app/login/actions"
 import { getSettings } from "@/lib/api/settings"
+import { getCurrentProfile } from "@/lib/api/profiles"
 
 import {
   Sidebar,
@@ -99,8 +100,35 @@ const items = [
   },
 ]
 
+const resellerItems = [
+  {
+    title: "Dashboard",
+    url: "/reseller/dashboard",
+    icon: LayoutDashboard,
+  },
+  {
+    title: "Catálogo de Revenda",
+    url: "/reseller/catalog",
+    icon: BookOpen,
+  },
+  {
+    title: "Meus Pedidos",
+    url: "/reseller/orders",
+    icon: ShoppingCart,
+  },
+  {
+    title: "Solicitar Orçamento",
+    url: "/reseller/quote",
+    icon: PlusCircle,
+  },
+]
+
 export async function AppSidebar() {
   const settings = await getSettings()
+  const profile = await getCurrentProfile()
+  const role = profile?.role || 'admin'
+  
+  const menuItemsToUse = role === 'reseller' ? resellerItems : items
   
   return (
     <Sidebar variant="sidebar">
@@ -122,7 +150,7 @@ export async function AppSidebar() {
           <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
+              {menuItemsToUse.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton tooltip={item.title} render={<a href={item.url} />}>
                     <item.icon />

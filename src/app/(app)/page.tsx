@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { DollarSign, ShoppingCart, Activity, ArrowUpRight, ArrowDownRight, Award, Gift, Star, Repeat, Building, Target, AlertCircle, Clock } from "lucide-react"
 import { getDashboardMetrics } from "@/lib/api/finance"
@@ -12,8 +13,8 @@ import {
   getBirthdayClients, 
   getVIPSeasonalClients,
   getInactiveClients,
-  getPendingFollowUps
 } from "@/lib/api/analytics"
+import { getCurrentProfile } from "@/lib/api/profiles"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 
@@ -30,6 +31,7 @@ export default function DashboardPage() {
   })
   const [settings, setSettings] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const router = useRouter()
 
   useEffect(() => {
     async function loadData() {
@@ -43,7 +45,8 @@ export default function DashboardPage() {
           vips,
           settingsData,
           inactive,
-          followups
+          followups,
+          profile
         ] = await Promise.all([
           getDashboardMetrics(),
           getClientRankingByValue(),
@@ -53,8 +56,14 @@ export default function DashboardPage() {
           getVIPSeasonalClients(),
           getSettings(),
           getInactiveClients(60),
-          getPendingFollowUps(3)
+          getPendingFollowUps(3),
+          getCurrentProfile()
         ])
+        
+        if (profile?.role === 'reseller') {
+          router.push('/reseller/dashboard')
+          return
+        }
         
         setMetrics(data)
         setAnalytics({ clientRanking, b2bRanking, recurring, birthdays, vips, inactive, followups })
