@@ -13,7 +13,8 @@ import {
   getBirthdayClients, 
   getVIPSeasonalClients,
   getInactiveClients,
-  getPendingFollowUps
+  getPendingFollowUps,
+  getResellerRanking
 } from "@/lib/api/analytics"
 import { getCurrentProfile } from "@/lib/api/profiles"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -24,6 +25,7 @@ export default function DashboardPage() {
   const [analytics, setAnalytics] = useState<any>({
     clientRanking: [],
     b2bRanking: [],
+    resellerRanking: [],
     recurring: [],
     birthdays: [],
     vips: [],
@@ -46,6 +48,7 @@ export default function DashboardPage() {
           vips,
           settingsData,
           inactive,
+          resellerRankingData,
           followups,
           profile
         ] = await Promise.all([
@@ -57,6 +60,7 @@ export default function DashboardPage() {
           getVIPSeasonalClients(),
           getSettings(),
           getInactiveClients(60),
+          getResellerRanking(),
           getPendingFollowUps(3),
           getCurrentProfile()
         ])
@@ -67,7 +71,7 @@ export default function DashboardPage() {
         }
         
         setMetrics(data)
-        setAnalytics({ clientRanking, b2bRanking, recurring, birthdays, vips, inactive, followups })
+        setAnalytics({ clientRanking, b2bRanking, resellerRanking: resellerRankingData, recurring, birthdays, vips, inactive, followups })
         setSettings(settingsData)
       } catch (error) {
         console.error('Failed to load metrics', error)
@@ -364,7 +368,7 @@ export default function DashboardPage() {
           <Card className="shadow-sm flex-1">
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center text-gray-700 text-base">
-                <Building className="h-4 w-4 mr-2" /> Top Revendas (B2B)
+                <Building className="h-4 w-4 mr-2" /> Top Empresas (B2B)
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-2">
@@ -383,6 +387,30 @@ export default function DashboardPage() {
               </div>
             </CardContent>
           </Card>
+          {/* Ranking Revendedores */}
+          <Card className="shadow-sm flex-1 mt-4">
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center text-gray-700 text-base">
+                <Award className="h-4 w-4 mr-2 text-orange-500" /> Top Revendedores
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-2">
+              <div className="space-y-2">
+                {analytics.resellerRanking?.length > 0 ? analytics.resellerRanking.slice(0, 3).map((reseller: any, idx: number) => (
+                  <div key={reseller.id} className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <span className="text-xs font-bold text-gray-400 w-4">{idx + 1}.</span>
+                      <span className="text-sm font-medium truncate max-w-[120px]" title={reseller.name}>{reseller.name}</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground">{reseller.orderCount} ped</span>
+                  </div>
+                )) : (
+                  <p className="text-sm text-muted-foreground">Sem revendedores ativos.</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
         </div>
       </div>
       
@@ -425,7 +453,7 @@ export default function DashboardPage() {
                   <div key={order.id} className="flex items-center justify-between border-b pb-3 last:border-0 last:pb-0">
                     <div className="space-y-1">
                       <p className="text-sm font-medium leading-none">
-                        {order.clients?.full_name || order.companies?.business_name || 'Cliente'}
+                        {order.clients?.full_name || order.companies?.business_name || order.resellers?.full_name || 'Cliente'}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         Pedido #{order.order_number}

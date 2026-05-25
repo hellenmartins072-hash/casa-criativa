@@ -408,3 +408,33 @@ export async function getSeasonalRevenue(year?: number) {
 
   return Object.values(seasonal).filter(s => s.count > 0)
 }
+
+// Ranking de Revendedores por Volume
+export async function getResellerRanking() {
+  const { data: orders, error } = await supabase
+    .from('orders')
+    .select('reseller_id, total_amount, resellers(full_name)')
+    .not('reseller_id', 'is', null)
+    
+  if (error || !orders) return []
+
+  const ranking: Record<string, { id: string, name: string, total: number, orderCount: number }> = {}
+
+  for (const order of orders) {
+    if (!order.reseller_id) continue
+    
+    if (!ranking[order.reseller_id]) {
+      ranking[order.reseller_id] = {
+        id: order.reseller_id,
+        name: (order.resellers as any)?.full_name || 'Desconhecido',
+        total: 0,
+        orderCount: 0
+      }
+    }
+    
+    ranking[order.reseller_id].total += Number(order.total_amount || 0)
+    ranking[order.reseller_id].orderCount += 1
+  }
+
+  return Object.values(ranking).sort((a, b) => b.total - a.total)
+}
