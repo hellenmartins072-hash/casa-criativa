@@ -4,8 +4,8 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Store, createStore, updateStore } from "@/lib/api/stores"
-import { Loader2, Plus } from "lucide-react"
+import { Store, createStore, updateStore, uploadStoreLogo } from "@/lib/api/stores"
+import { Loader2, Plus, Image as ImageIcon } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -36,27 +36,43 @@ export function StoreFormDialog({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
+  const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [logoPreview, setLogoPreview] = useState<string | null>(null)
+
   const [formData, setFormData] = useState<Partial<Store>>({
     name: "",
     instagram: "",
     type: "Varejo",
     color: "#5C3D8F",
+    logo_url: null,
     is_active: true
   })
 
   useEffect(() => {
     if (initialData && open) {
       setFormData(initialData)
+      setLogoPreview(initialData.logo_url || null)
     } else if (!open && !initialData) {
       setFormData({
         name: "",
         instagram: "",
         type: "Varejo",
         color: "#5C3D8F",
+        logo_url: null,
         is_active: true
       })
+      setLogoFile(null)
+      setLogoPreview(null)
     }
   }, [initialData, open])
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0]
+      setLogoFile(file)
+      setLogoPreview(URL.createObjectURL(file))
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -64,10 +80,22 @@ export function StoreFormDialog({
     setError("")
 
     try {
+      let finalData = { ...formData }
+      if (logoFile) {
+        try {
+          const logoUrl = await uploadStoreLogo(logoFile)
+          finalData.logo_url = logoUrl
+        } catch (err) {
+          setError("Erro ao fazer upload do logotipo.")
+          setLoading(false)
+          return
+        }
+      }
+
       if (initialData?.id) {
-        await updateStore(initialData.id, formData)
+        await updateStore(initialData.id, finalData)
       } else {
-        await createStore(formData)
+        await createStore(finalData)
       }
       setOpen(false)
       if (onSave) onSave()
@@ -98,6 +126,31 @@ export function StoreFormDialog({
           </DialogHeader>
           <div className="grid gap-4 py-4">
             {error && <div className="text-red-500 text-sm">{error}</div>}
+            
+            <div className="flex justify-center mb-4">
+              <div className="border-2 border-dashed border-gray-300 rounded-full p-2 w-24 h-24 flex flex-col items-center justify-center hover:bg-gray-50 cursor-pointer transition-colors relative overflow-hidden">
+                {logoPreview || formData.logo_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img 
+                    src={logoPreview || formData.logo_url || ''} 
+                    alt="Logo da Loja" 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="text-center text-muted-foreground flex flex-col items-center">
+                    <ImageIcon className="w-6 h-6 mb-1 opacity-50" />
+                    <span className="text-[9px] uppercase">Logo</span>
+                  </div>
+                )}
+                <input 
+                  type="file" 
+                  accept="image/png, image/jpeg"
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  onChange={handleLogoUpload}
+                />
+              </div>
+            </div>
+
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="name" className="text-right">
                 Nome

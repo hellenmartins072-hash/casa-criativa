@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation'
 import { Order, OrderItem, createOrder, updateOrder } from '@/lib/api/orders'
 import { getClients, createClient } from '@/lib/api/clients'
 import { getCompanies, createCompany } from '@/lib/api/companies'
-import { getActiveProducts, type Product } from '@/lib/api/products'
 import { getShippingPartners, type ShippingPartner } from '@/lib/api/shipping'
+import { getOrderChecklist, createChecklistStep, toggleChecklistStep, deleteChecklistStep, getOrderReworks, registerRework, deleteRework, type OrderChecklist, type OrderRework } from '@/lib/api/operations'
+import { generateWhatsAppBudgetScript, getCouponByCode } from '@/lib/api/marketing'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -79,6 +80,17 @@ export function OrderForm({ initialData }: OrderFormProps) {
     initialData?.items || []
   )
 
+  // Operações (Checklist & Rework)
+  const [checklist, setChecklist] = useState<OrderChecklist[]>([])
+  const [newChecklistStep, setNewChecklistStep] = useState('')
+  const [reworks, setReworks] = useState<OrderRework[]>([])
+  const [isReworkModalOpen, setIsReworkModalOpen] = useState(false)
+  const [newRework, setNewRework] = useState({ reason: '', extra_cost: 0 })
+
+  // Coupon
+  const [couponCode, setCouponCode] = useState('')
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null)
+
   useEffect(() => {
     async function loadSupportData() {
       try {
@@ -92,6 +104,14 @@ export function OrderForm({ initialData }: OrderFormProps) {
         setCompanies(compData || [])
         setProducts(prodData || [])
         setShippingPartners(shipData || [])
+        if (initialData?.id) {
+          const [checkData, reworkData] = await Promise.all([
+            getOrderChecklist(initialData.id),
+            getOrderReworks(initialData.id)
+          ])
+          setChecklist(checkData || [])
+          setReworks(reworkData || [])
+        }
       } catch (err) {
         console.error('Error loading support data', err)
       } finally {
@@ -99,7 +119,7 @@ export function OrderForm({ initialData }: OrderFormProps) {
       }
     }
     loadSupportData()
-  }, [])
+  }, [initialData?.id])
 
   // Recalcula o total sempre que os itens ou os valores auxiliares mudarem
   useEffect(() => {
@@ -225,6 +245,91 @@ export function OrderForm({ initialData }: OrderFormProps) {
 
     newItems[index] = item
     setItems(newItems)
+  }
+
+  // --- Checklist Handlers ---
+  const handleAddChecklist = async () => {
+    if (!initialData?.id || !newChecklistStep.trim()) return
+    try {
+      const step = await createChecklistStep({ order_id: initialData.id, step_name: newChecklistStep.trim() })
+      if (step) {
+        setChecklist([...checklist, step])
+        setNewChecklistStep('')
+      }
+    } catch (err) {
+      alert("Erro ao adicionar etapa.")
+    }
+  }
+
+  const handleToggleChecklist = async (id: string, is_completed: boolean) => {
+    try {
+      await toggleChecklistStep(id, is_completed)
+      setChecklist(checklist.map(c => c.id === id ? { ...c, is_completed } : c))
+    } catch (err) {
+      alert("Erro ao atualizar etapa.")
+    }
+  }
+
+  const handleDeleteChecklist = async (id: string) => {
+    try {
+      await deleteChecklistStep(id)
+      setChecklist(checklist.filter(c => c.id !== id))
+    } catch (err) {
+      alert("Erro ao excluir etapa.")
+    }
+  }
+
+  // --- Rework Handlers ---
+  const handleAddRework = async () => {
+    if (!initialData?.id || !newRework.reason.trim()) return
+    try {
+      const rw = await registerRework({ 
+        order_id: initialData.id, 
+        reason: newRework.reason.trim(), 
+        extra_cost: newRework.extra_cost 
+      })
+      if (rw) {
+        setReworks([...reworks, rw])
+        setNewRework({ reason: '', extra_cost: 0 })
+        setIsReworkModalOpen(false)
+      }
+    } catch (err) {
+      alert("Erro ao registrar retrabalho.")
+    }
+  }
+
+  const handleDeleteRework = async (id: string) => {
+    if (!confirm("Remover este registro de retrabalho?")) return
+    try {
+      await deleteRework(id)
+      setReworks(reworks.filter(r => r.id !== id))
+    } catch (err) {
+      alert("Erro ao remover retrabalho.")
+    }
+  }
+
+  // --- Coupon Handlers ---
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return
+    try {
+      const coupon = await getCouponByCode(couponCode.trim())
+      if (coupon) {
+        setAppliedCoupon(coupon)
+        
+        // Calcular desconto
+        const itemsTotal = items.reduce((acc, item) => acc + Number(item.total_price || 0), 0)
+        const discountAmount = (itemsTotal * (coupon.discount_percent / 100))
+        setFormData(prev => ({ ...prev, discount_amount: discountAmount }))
+        
+        alert(`Cupom aplicado! ${coupon.discount_percent}% de desconto.`)
+      } else {
+        alert('Cupom inválido, expirado ou inativo.')
+        setAppliedCoupon(null)
+      }
+    } catch (err) {
+      console.error(err)
+      alert('Erro ao verificar cupom.')
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -586,6 +691,128 @@ export function OrderForm({ initialData }: OrderFormProps) {
             </div>
           </div>
 
+          {/* Qualidade e Produção (Apenas para pedidos já salvos) */}
+          {initialData?.id && (
+            <div className="space-y-4 pt-4 border-t border-dashed">
+              <h3 className="font-semibold text-lg text-[#5C3D8F]">Qualidade e Produção</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                {/* Checklist */}
+                <div className="border rounded-md p-4 bg-gray-50/50">
+                  <h4 className="font-medium mb-3 text-sm flex items-center">
+                    Checklist de Produção
+                  </h4>
+                  <div className="space-y-2 mb-4">
+                    {checklist.map(step => (
+                      <div key={step.id} className="flex items-center justify-between p-2 bg-white border rounded">
+                        <div className="flex items-center gap-2">
+                          <input 
+                            type="checkbox" 
+                            checked={step.is_completed}
+                            onChange={(e) => handleToggleChecklist(step.id, e.target.checked)}
+                            className="rounded border-gray-300 w-4 h-4 text-[#5C3D8F]"
+                          />
+                          <span className={`text-sm ${step.is_completed ? 'line-through text-muted-foreground' : ''}`}>
+                            {step.step_name}
+                          </span>
+                        </div>
+                        <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleDeleteChecklist(step.id)}>
+                          <Trash2 className="h-3 w-3 text-red-400" />
+                        </Button>
+                      </div>
+                    ))}
+                    {checklist.length === 0 && <p className="text-xs text-muted-foreground">Nenhuma etapa cadastrada.</p>}
+                  </div>
+                  <div className="flex gap-2">
+                    <Input 
+                      placeholder="Nova etapa..." 
+                      value={newChecklistStep} 
+                      onChange={e => setNewChecklistStep(e.target.value)}
+                      className="h-8 text-sm bg-white"
+                      onKeyDown={(e) => {
+                        if(e.key === 'Enter') {
+                          e.preventDefault()
+                          handleAddChecklist()
+                        }
+                      }}
+                    />
+                    <Button type="button" size="sm" variant="secondary" onClick={handleAddChecklist}>
+                      Add
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Retrabalhos */}
+                <div className="border rounded-md p-4 bg-red-50/30">
+                  <div className="flex justify-between items-center mb-3">
+                    <h4 className="font-medium text-sm flex items-center text-red-700">
+                      Registro de Retrabalhos
+                    </h4>
+                    <Dialog open={isReworkModalOpen} onOpenChange={setIsReworkModalOpen}>
+                      <DialogTrigger asChild>
+                        <Button type="button" variant="outline" size="sm" className="h-7 text-xs border-red-200 text-red-600 hover:bg-red-50">
+                          <Plus className="mr-1 h-3 w-3" /> Registrar
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Registrar Retrabalho</DialogTitle>
+                          <DialogDescription>
+                            Anote o motivo e o custo extra envolvido (se houver). Isso não afeta o valor cobrado do cliente, apenas os seus custos internos.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 pt-4">
+                          <div className="space-y-2">
+                            <Label>Motivo do Retrabalho</Label>
+                            <Input 
+                              placeholder="Ex: Peça arranhou no polimento"
+                              value={newRework.reason}
+                              onChange={e => setNewRework({...newRework, reason: e.target.value})}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Custo Extra Estimado (R$)</Label>
+                            <Input 
+                              type="number" step="0.01" min="0"
+                              value={newRework.extra_cost}
+                              onChange={e => setNewRework({...newRework, extra_cost: parseFloat(e.target.value) || 0})}
+                            />
+                          </div>
+                          <Button type="button" className="w-full bg-red-600 hover:bg-red-700" onClick={handleAddRework}>
+                            Salvar Retrabalho
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                  <div className="space-y-2">
+                    {reworks.map(r => (
+                      <div key={r.id} className="p-2 bg-white border border-red-100 rounded text-sm relative group">
+                        <div className="font-medium text-red-800">{r.reason}</div>
+                        <div className="text-xs text-muted-foreground flex justify-between mt-1">
+                          <span>{new Date(r.created_at).toLocaleDateString()}</span>
+                          {Number(r.extra_cost) > 0 && <span className="text-red-600 font-semibold">Custo: R$ {r.extra_cost}</span>}
+                        </div>
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-6 w-6 absolute top-1 right-1 opacity-0 group-hover:opacity-100" 
+                          onClick={() => handleDeleteRework(r.id)}
+                        >
+                          <Trash2 className="h-3 w-3 text-red-400" />
+                        </Button>
+                      </div>
+                    ))}
+                    {reworks.length === 0 && <p className="text-xs text-muted-foreground">Nenhum retrabalho registrado.</p>}
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          )}
+
           {/* Fechamento / Totais */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
@@ -600,17 +827,32 @@ export function OrderForm({ initialData }: OrderFormProps) {
             </div>
             
             <div className="space-y-3 p-4 border rounded-lg bg-gray-50">
+              <div className="flex justify-between items-center text-sm border-b pb-2">
+                <span>Cupom de Indicação:</span>
+                <div className="flex gap-1 w-48">
+                  <Input 
+                    placeholder="Ex: MARIA10" 
+                    value={couponCode} 
+                    onChange={e => setCouponCode(e.target.value)}
+                    className="h-8 text-xs uppercase"
+                  />
+                  <Button type="button" size="sm" variant="secondary" className="h-8" onClick={handleApplyCoupon}>Aplicar</Button>
+                </div>
+              </div>
               <div className="flex justify-between items-center text-sm">
                 <span>Subtotal Itens:</span>
                 <span>R$ {items.reduce((acc, item) => acc + Number(item.total_price || 0), 0).toFixed(2)}</span>
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span>Descontos (-):</span>
-                <Input 
-                  type="number" name="discount_amount" step="0.01"
-                  value={formData.discount_amount} onChange={handleNumberChange}
-                  className="w-24 h-8 text-right bg-white"
-                />
+                <div className="flex items-center gap-2">
+                  {appliedCoupon && <Badge variant="outline" className="text-green-600 bg-green-50 border-green-200 text-[10px]">CUPOM: {appliedCoupon.code}</Badge>}
+                  <Input 
+                    type="number" name="discount_amount" step="0.01"
+                    value={formData.discount_amount} onChange={handleNumberChange}
+                    className="w-24 h-8 text-right bg-white"
+                  />
+                </div>
               </div>
 
               <div className="border-t pt-3 pb-2 mt-2 space-y-3">
@@ -663,21 +905,43 @@ export function OrderForm({ initialData }: OrderFormProps) {
           </div>
 
         </CardContent>
-        <CardFooter className="flex justify-between p-4 md:p-6 bg-gray-50 border-t mt-6">
-          <div className="flex gap-2">
+        <CardFooter className="flex flex-col md:flex-row justify-between p-4 md:p-6 bg-gray-50 border-t mt-6 gap-4">
+          <div className="flex flex-wrap gap-2">
             {initialData?.id && (
-              <Button
-                type="button"
-                variant="outline"
-                className="text-blue-600 border-blue-200 hover:bg-blue-50"
-                onClick={() => {
-                  const url = `${window.location.origin}/contract/${initialData.id}`
-                  navigator.clipboard.writeText(url)
-                  alert('Link do Contrato copiado para a área de transferência!')
-                }}
-              >
-                <FileSignature className="mr-2 h-4 w-4" /> Link do Contrato
-              </Button>
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                  onClick={() => {
+                    const url = `${window.location.origin}/contract/${initialData.id}`
+                    navigator.clipboard.writeText(url)
+                    alert('Link do Contrato copiado para a área de transferência!')
+                  }}
+                >
+                  <FileSignature className="mr-2 h-4 w-4" /> Link do Contrato
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="text-green-600 border-green-200 hover:bg-green-50"
+                  onClick={() => {
+                    // Montar um "mock" temporário com as infos carregadas pra passar pro gerador
+                    const mockOrder = {
+                      ...formData,
+                      id: initialData.id,
+                      items,
+                      clients: clients.find(c => c.id === formData.client_id),
+                      companies: companies.find(c => c.id === formData.company_id)
+                    }
+                    const text = generateWhatsAppBudgetScript(mockOrder)
+                    navigator.clipboard.writeText(text)
+                    alert('Texto do orçamento copiado! Agora é só colar no WhatsApp.')
+                  }}
+                >
+                  <Copy className="mr-2 h-4 w-4" /> Copiar Orçamento p/ WhatsApp
+                </Button>
+              </>
             )}
           </div>
           <div className="flex justify-end gap-2">

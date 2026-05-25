@@ -1,10 +1,11 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { Plus, Search, ArrowUpRight, ArrowDownRight, Trash2 } from 'lucide-react'
-import { getTransactions, createTransaction, deleteTransaction, updateTransaction, type FinancialTransaction } from '@/lib/api/finance'
+import { getTransactions, createTransaction, deleteTransaction, updateTransaction, getBankAccounts, createBankAccount, deleteBankAccount, type FinancialTransaction, type BankAccount } from '@/lib/api/finance'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import Link from 'next/link'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
@@ -15,7 +16,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { FinanceDashboard } from '@/components/finance/finance-dashboard'
 
@@ -33,14 +34,28 @@ export default function FinancePage() {
     amount: '',
     due_date: new Date().toISOString().split('T')[0],
     status: 'Pago',
-    payment_method: 'PIX'
+    payment_method: 'PIX',
+    bank_account_id: ''
   })
+  
+  const [accounts, setAccounts] = useState<BankAccount[]>([])
+  const [isAccountModalOpen, setIsAccountModalOpen] = useState(false)
+  const [newAccountData, setNewAccountData] = useState({ name: '', type: 'PJ', balance: '0' })
 
   const loadData = async () => {
     setLoading(true)
     try {
-      const data = await getTransactions()
+      const [data, accs] = await Promise.all([
+        getTransactions(),
+        getBankAccounts()
+      ])
       setTransactions(data || [])
+      setAccounts(accs || [])
+      
+      // Auto-select first account if exists
+      if (accs && accs.length > 0 && !formData.bank_account_id) {
+        setFormData(prev => ({ ...prev, bank_account_id: accs[0].id }))
+      }
     } catch (error) {
       console.error(error)
     } finally {
@@ -68,13 +83,14 @@ export default function FinancePage() {
         due_date: formData.due_date,
         payment_date: formData.status === 'Pago' ? formData.due_date : null,
         status: formData.status as 'Pendente' | 'Pago',
-        payment_method: formData.payment_method
+        payment_method: formData.payment_method,
+        bank_account_id: formData.bank_account_id || null
       })
       setIsModalOpen(false)
       loadData()
       // reset form
       setFormData({
-        type: 'Despesa', category: 'Fornecedor', description: '', amount: '', due_date: new Date().toISOString().split('T')[0], status: 'Pago', payment_method: 'PIX'
+        type: 'Despesa', category: 'Fornecedor', description: '', amount: '', due_date: new Date().toISOString().split('T')[0], status: 'Pago', payment_method: 'PIX', bank_account_id: accounts.length > 0 ? accounts[0].id : ''
       })
     } catch (err) {
       alert("Erro ao salvar transação.")
@@ -95,6 +111,28 @@ export default function FinancePage() {
     loadData()
   }
 
+  const handleSaveAccount = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      await createBankAccount({
+        name: newAccountData.name,
+        type: newAccountData.type as 'PF' | 'PJ',
+        balance: parseFloat(newAccountData.balance.replace(',', '.')) || 0
+      })
+      setNewAccountData({ name: '', type: 'PJ', balance: '0' })
+      loadData()
+    } catch (err) {
+      alert("Erro ao criar conta bancária.")
+    }
+  }
+
+  const handleDeleteAccount = async (id: string) => {
+    if (confirm("Apagar conta bancária? Isso não apagará transações vinculadas, mas as deixará sem conta.")) {
+      await deleteBankAccount(id)
+      loadData()
+    }
+  }
+
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
@@ -105,6 +143,67 @@ export default function FinancePage() {
           </p>
         </div>
         <div className="flex items-center space-x-2">
+          {/* Link Comissões */}
+          <Link href="/finance/commissions">
+            <Button variant="outline" className="border-indigo-500 text-indigo-700 hover:bg-indigo-50">
+              Comissões B2B
+            </Button>
+          </Link>
+
+          {/* Gerenciar Contas */}
+          <Dialog open={isAccountModalOpen} onOpenChange={setIsAccountModalOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="border-[#5C3D8F] text-[#5C3D8F]">
+                Contas Bancárias
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Contas Bancárias (PF/PJ)</DialogTitle>
+                <DialogDescription>Gerencie de onde o dinheiro entra e sai.</DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-4 pt-2">
+                <div className="space-y-2">
+                  {accounts.map(acc => (
+                    <div key={acc.id} className="flex justify-between items-center p-2 border rounded-md">
+                      <div>
+                        <span className="font-semibold text-sm">{acc.name}</span>
+                        <Badge variant="outline" className="ml-2 text-xs">{acc.type}</Badge>
+                      </div>
+                      <Button variant="ghost" size="icon" onClick={() => handleDeleteAccount(acc.id)}>
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </Button>
+                    </div>
+                  ))}
+                  {accounts.length === 0 && <p className="text-sm text-muted-foreground text-center">Nenhuma conta cadastrada.</p>}
+                </div>
+
+                <form onSubmit={handleSaveAccount} className="pt-4 border-t space-y-4">
+                  <h4 className="text-sm font-semibold">Nova Conta</h4>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Nome da Conta</Label>
+                      <Input required value={newAccountData.name} onChange={e => setNewAccountData({...newAccountData, name: e.target.value})} placeholder="Ex: Inter PJ" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Tipo</Label>
+                      <select 
+                        value={newAccountData.type} onChange={e => setNewAccountData({...newAccountData, type: e.target.value})}
+                        className="flex h-9 w-full rounded-md border border-input bg-white px-3 py-1 shadow-sm text-sm"
+                      >
+                        <option value="PJ">Pessoa Jurídica (PJ)</option>
+                        <option value="PF">Pessoa Física (PF)</option>
+                      </select>
+                    </div>
+                  </div>
+                  <Button type="submit" className="w-full bg-[#5C3D8F] hover:bg-[#4a3173] text-white h-8 text-xs">Adicionar Conta</Button>
+                </form>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Lançamento */}
           <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
             <DialogTrigger asChild>
               <Button className="bg-[#5C3D8F] hover:bg-[#4a3173] text-white">
@@ -170,6 +269,18 @@ export default function FinancePage() {
                     </select>
                   </div>
                 </div>
+                <div className="space-y-2">
+                  <Label>Conta Bancária</Label>
+                  <select 
+                    value={formData.bank_account_id} onChange={e => setFormData({...formData, bank_account_id: e.target.value})}
+                    className="flex h-9 w-full rounded-md border border-input bg-white px-3 py-1 shadow-sm"
+                  >
+                    <option value="">Sem conta especificada</option>
+                    {accounts.map(acc => (
+                      <option key={acc.id} value={acc.id}>{acc.name} ({acc.type})</option>
+                    ))}
+                  </select>
+                </div>
                 <Button type="submit" className="w-full bg-[#5C3D8F] hover:bg-[#4a3173] text-white mt-4">Salvar</Button>
               </form>
             </DialogContent>
@@ -211,6 +322,7 @@ export default function FinancePage() {
                     <TableHead>Categoria</TableHead>
                     <TableHead>Data</TableHead>
                     <TableHead>Valor</TableHead>
+                    <TableHead>Conta</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
@@ -239,6 +351,9 @@ export default function FinancePage() {
                         </TableCell>
                         <TableCell className={`font-semibold ${tx.type === 'Receita' ? 'text-green-600' : 'text-red-600'}`}>
                           {tx.type === 'Despesa' && '- '}R$ {Number(tx.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {(tx as any).bank_accounts?.name || '-'}
                         </TableCell>
                         <TableCell>
                           <Button 

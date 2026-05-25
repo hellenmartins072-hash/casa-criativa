@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { getOrderById, Order, OrderItem } from '@/lib/api/orders'
+import { getOrder, Order, OrderItem } from '@/lib/api/orders'
 import { getSettings } from '@/lib/api/settings'
+import { getStore } from '@/lib/api/stores'
 import { Loader2, CheckCircle2, UploadCloud } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
@@ -14,6 +15,7 @@ export default function ContractPage() {
   const [order, setOrder] = useState<Order | null>(null)
   const [items, setItems] = useState<OrderItem[]>([])
   const [settings, setSettings] = useState<any>(null)
+  const [storeLogo, setStoreLogo] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   
@@ -24,15 +26,26 @@ export default function ContractPage() {
   useEffect(() => {
     async function loadData() {
       try {
-        const o = await getOrderById(id as string)
+        const o = await getOrder(id as string)
         if (!o) throw new Error('Pedido não encontrado')
-        setOrder(o.order)
-        setItems(o.items)
+        setOrder(o)
+        setItems(o.items || [])
         
         const s = await getSettings()
         setSettings(s)
         
-        if (o.order.contract_accepted_at) {
+        if (o.store_id) {
+          try {
+            const store = await getStore(o.store_id)
+            if (store && store.logo_url) {
+              setStoreLogo(store.logo_url)
+            }
+          } catch (e) {
+            console.warn('Could not fetch store logo')
+          }
+        }
+        
+        if (o.contract_accepted_at) {
           setAccepted(true)
         }
       } catch (err: any) {
@@ -118,9 +131,9 @@ export default function ContractPage() {
     <div className="min-h-screen bg-gray-100 p-4 md:p-8 flex items-start justify-center">
       <Card className="max-w-4xl w-full shadow-lg">
         <CardHeader className="border-b bg-white rounded-t-xl text-center pb-8 pt-8">
-          {settings?.logo_url && (
+          {(storeLogo || settings?.logo_url) && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={settings.logo_url} alt="Logo" className="mx-auto h-16 object-contain mb-4" />
+            <img src={storeLogo || settings.logo_url} alt="Logo" className="mx-auto h-16 object-contain mb-4" />
           )}
           <CardTitle className="text-2xl font-bold text-gray-800 uppercase tracking-wider">
             CONTRATO DE PRESTAÇÃO DE SERVIÇOS

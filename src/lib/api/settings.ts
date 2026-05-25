@@ -8,6 +8,7 @@ export type Settings = {
   phone?: string | null
   email?: string | null
   address?: string | null
+  logo_url?: string | null
   
   // Lote 2 & 4
   bank_name?: string | null
@@ -26,6 +27,12 @@ export type Settings = {
 
   // Metas
   monthly_revenue_goal?: number | null
+
+  // Alertas CRM e Backup (Fase 17)
+  inactive_client_days?: number | null
+  followup_days?: number | null
+  backup_email?: string | null
+  resend_api_key?: string | null
 
   updated_at?: string
 }
@@ -56,6 +63,25 @@ export async function updateSettings(settings: Partial<Settings>) {
     throw error
   }
   return data ? (data[0] as Settings) : null
+}
+
+export async function uploadLogo(file: File) {
+  const fileExt = file.name.split('.').pop()
+  const fileName = `logo_${Date.now()}.${fileExt}`
+
+  const { error: uploadError } = await supabase.storage
+    .from('logos')
+    .upload(fileName, file)
+
+  if (uploadError) {
+    throw uploadError
+  }
+
+  const { data: { publicUrl } } = supabase.storage
+    .from('logos')
+    .getPublicUrl(fileName)
+
+  return publicUrl
 }
 
 // --- Taxas de Pagamento e Plataformas ---

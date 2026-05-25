@@ -283,19 +283,7 @@ export async function deleteOrder(id: string) {
   return true
 }
 
-export async function updateOrderStatus(id: string, status: string) {
-  const { data, error } = await supabase
-    .from('orders')
-    .update({ status })
-    .eq('id', id)
-    .select()
 
-  if (error) {
-    console.error('Error updating order status:', error)
-    throw error
-  }
-  return data ? (data[0] as Order) : null
-}
 
 export async function processOrderInventoryDeduction(orderId: string) {
   // 1. Verifica se já houve baixa para este pedido (evitar duplicidade)
@@ -428,10 +416,11 @@ export async function processOrderInventoryRefund(orderId: string) {
 }
 
 export async function updateOrderStatus(id: string, status: OrderStatus) {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('orders')
     .update({ status })
     .eq('id', id)
+    .select()
 
   if (error) throw error
 
@@ -442,7 +431,7 @@ export async function updateOrderStatus(id: string, status: OrderStatus) {
     await processOrderInventoryRefund(id)
   }
 
-  return true
+  return data ? (data[0] as Order) : null
 }
 
 // ==========================================

@@ -287,3 +287,124 @@ export async function getMostProfitableProducts() {
     .sort((a, b) => b.totalProfit - a.totalProfit)
     .slice(0, 5)
 }
+
+// 10. Taxa de Conversão de Orçamentos
+export async function getConversionRate() {
+  const { data: orders, error } = await supabase
+    .from('orders')
+    .select('status')
+  
+  if (error || !orders) return { rate: 0, total: 0, converted: 0 }
+
+  const total = orders.length
+  if (total === 0) return { rate: 0, total: 0, converted: 0 }
+
+  const converted = orders.filter(o => ['Aprovado', 'Em Produção', 'Finalizado', 'Entregue'].includes(o.status)).length
+  const rate = (converted / total) * 100
+
+  return { rate: parseFloat(rate.toFixed(2)), total, converted }
+}
+
+// 11. Ticket Médio
+export async function getAverageTicket() {
+  const { data: orders, error } = await supabase
+    .from('orders')
+    .select('total_amount, status')
+    .in('status', ['Aprovado', 'Em Produção', 'Finalizado', 'Entregue'])
+
+  if (error || !orders || orders.length === 0) return 0
+
+  const totalRevenue = orders.reduce((sum, o) => sum + (Number(o.total_amount) || 0), 0)
+  return totalRevenue / orders.length
+}
+
+// 12. Clientes Inativos (Alerta)
+export async function getInactiveClients(daysInactive = 60) {
+  const cutoffDate = new Date()
+  cutoffDate.setDate(cutoffDate.getDate() - daysInactive)
+
+  const { data: clients, error } = await supabase
+    .from('clients')
+    .select('id, full_name, whatsapp')
+
+  const { data: orders } = await supabase
+    .from('orders')
+    .select('client_id, created_at')
+    .order('created_at', { ascending: false })
+
+  if (error || !clients) return []
+
+  const inactiveList = []
+  for (const client of clients) {
+    const clientOrders = orders?.filter(o => o.client_id === client.id) || []
+    if (clientOrders.length === 0) continue 
+
+    const lastOrderDate = new Date(clientOrders[0].created_at)
+    if (lastOrderDate < cutoffDate) {
+      inactiveList.push({
+        ...client,
+        lastOrderDate: lastOrderDate.toISOString(),
+        daysInactive: Math.floor((new Date().getTime() - lastOrderDate.getTime()) / (1000 * 3600 * 24))
+      })
+    }
+  }
+
+  return inactiveList.sort((a, b) => b.daysInactive - a.daysInactive)
+}
+
+// 13. Orçamentos sem Resposta (Follow-up)
+export async function getPendingFollowUps(daysPending = 3) {
+  const cutoffDate = new Date()
+  cutoffDate.setDate(cutoffDate.getDate() - daysPending)
+
+  const { data: orders, error } = await supabase
+    .from('orders')
+    .select('id, order_number, created_at, clients(id, full_name, whatsapp), companies(id, business_name, phone)')
+    .eq('status', 'Orçamento')
+    .lte('created_at', cutoffDate.toISOString())
+
+  if (error || !orders) return []
+
+  return orders.map(o => ({
+    id: o.id,
+    orderNumber: o.order_number,
+    date: o.created_at,
+    clientName: (o.clients as any)?.full_name || (o.companies as any)?.business_name || 'Desconhecido',
+    phone: (o.clients as any)?.whatsapp || (o.companies as any)?.phone || '',
+    daysPending: Math.floor((new Date().getTime() - new Date(o.created_at).getTime()) / (1000 * 3600 * 24))
+  })).sort((a, b) => b.daysPending - a.daysPending)
+}
+
+// 14. Relatório Sazonal (Comparação de Datas Comemorativas)
+export async function getSeasonalRevenue(year?: number) {
+  const targetYear = year || new Date().getFullYear()
+
+  // Retorna total faturado no mês de Mães(5), Pais(8), Natal(12), etc., no ano solicitado.
+  const { data: orders, error } = await supabase
+    .from('orders')
+    .select('total_amount, created_at, status')
+    .in('status', ['Aprovado', 'Em Produção', 'Finalizado', 'Entregue'])
+    .gte('created_at', `${targetYear}-01-01T00:00:00Z`)
+    .lte('created_at', `${targetYear}-12-31T23:59:59Z`)
+
+  if (error || !orders) return []
+
+  const seasonal: Record<number, { name: string, total: number, count: number }> = {
+    4: { name: 'Páscoa', total: 0, count: 0 },
+    5: { name: 'Mães', total: 0, count: 0 },
+    6: { name: 'Namorados', total: 0, count: 0 },
+    8: { name: 'Pais', total: 0, count: 0 },
+    10: { name: 'Crianças/Professores', total: 0, count: 0 },
+    12: { name: 'Natal', total: 0, count: 0 },
+  }
+
+  for (const order of orders) {
+    const month = new Date(order.created_at).getMonth() + 1
+    if (seasonal[month]) {
+      seasonal[month].total += (Number(order.total_amount) || 0)
+      seasonal[month].count += 1
+    }
+  }
+
+  return Object.values(seasonal).filter(s => s.count > 0)
+}

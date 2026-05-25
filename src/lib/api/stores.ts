@@ -6,6 +6,7 @@ export type Store = {
   instagram?: string
   type?: 'Varejo' | 'Laser' | 'Corporativo' | 'E-commerce'
   color?: string
+  logo_url?: string | null
   is_active?: boolean
   created_at?: string
 }
@@ -75,4 +76,23 @@ export async function deleteStore(id: string) {
     throw error
   }
   return true
+}
+
+export async function uploadStoreLogo(file: File) {
+  const fileExt = file.name.split('.').pop()
+  const fileName = `store_logo_${Date.now()}.${fileExt}`
+
+  const { error: uploadError } = await supabase.storage
+    .from('logos')
+    .upload(fileName, file)
+
+  if (uploadError) {
+    throw uploadError
+  }
+
+  const { data: { publicUrl } } = supabase.storage
+    .from('logos')
+    .getPublicUrl(fileName)
+
+  return publicUrl
 }

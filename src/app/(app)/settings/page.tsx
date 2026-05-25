@@ -30,6 +30,7 @@ import {
   PaymentFee, 
   getSettings, 
   updateSettings, 
+  uploadLogo,
   getFees, 
   createFee, 
   updateFee, 
@@ -47,6 +48,9 @@ export default function SettingsPage() {
   const [savingSettings, setSavingSettings] = useState(false)
   const [savingFee, setSavingFee] = useState(false)
   const [exportingType, setExportingType] = useState<string | null>(null)
+  
+  const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [logoPreview, setLogoPreview] = useState<string | null>(null)
   
   const [settings, setSettingsData] = useState<Partial<Settings>>({
     business_name: '',
@@ -85,6 +89,14 @@ export default function SettingsPage() {
     }
   }
 
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0]
+      setLogoFile(file)
+      setLogoPreview(URL.createObjectURL(file))
+    }
+  }
+
   useEffect(() => {
     loadData()
   }, [])
@@ -93,7 +105,22 @@ export default function SettingsPage() {
     e.preventDefault()
     setSavingSettings(true)
     try {
-      await updateSettings(settings)
+      let finalSettings = { ...settings }
+      
+      // Se houver arquivo de logo, faz o upload primeiro
+      if (logoFile) {
+        try {
+          const logoUrl = await uploadLogo(logoFile)
+          finalSettings.logo_url = logoUrl
+          setSettingsData(prev => ({ ...prev, logo_url: logoUrl }))
+        } catch (uploadErr) {
+          alert("Erro ao fazer upload do logotipo.")
+          setSavingSettings(false)
+          return
+        }
+      }
+
+      await updateSettings(finalSettings)
       alert("Dados da empresa salvos com sucesso!")
     } catch (err) {
       alert("Erro ao salvar dados da empresa.")
@@ -256,16 +283,44 @@ export default function SettingsPage() {
             </CardHeader>
             <form onSubmit={handleSaveSettings}>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="business_name">Nome da Empresa</Label>
-                    <Input 
-                      id="business_name" 
-                      value={settings.business_name || ''} 
-                      onChange={e => setSettingsData({...settings, business_name: e.target.value})} 
-                      required 
-                    />
+                
+                <div className="flex flex-col md:flex-row gap-6 mb-6 pb-6 border-b">
+                  <div className="flex-shrink-0">
+                    <Label className="block mb-2 text-center md:text-left">Logotipo Principal</Label>
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-2 w-32 h-32 flex flex-col items-center justify-center hover:bg-gray-50 cursor-pointer transition-colors relative mx-auto md:mx-0">
+                      {logoPreview || settings.logo_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img 
+                          src={logoPreview || settings.logo_url || ''} 
+                          alt="Logotipo" 
+                          className="w-full h-full object-contain"
+                        />
+                      ) : (
+                        <div className="text-center text-muted-foreground flex flex-col items-center">
+                          <Plus className="w-8 h-8 mb-1 opacity-50" />
+                          <span className="text-[10px] uppercase">Upload Logo</span>
+                        </div>
+                      )}
+                      <input 
+                        type="file" 
+                        accept="image/png, image/jpeg"
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        onChange={handleLogoUpload}
+                      />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-2 text-center w-32">PNG ou JPG</p>
                   </div>
+                  
+                  <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-4 h-fit">
+                    <div className="space-y-2">
+                      <Label htmlFor="business_name">Nome da Empresa</Label>
+                      <Input 
+                        id="business_name" 
+                        value={settings.business_name || ''} 
+                        onChange={e => setSettingsData({...settings, business_name: e.target.value})} 
+                        required 
+                      />
+                    </div>
                   <div className="space-y-2">
                     <Label htmlFor="document_number">CNPJ ou CPF</Label>
                     <Input 
@@ -297,6 +352,31 @@ export default function SettingsPage() {
                       id="address" 
                       value={settings.address || ''} 
                       onChange={e => setSettingsData({...settings, address: e.target.value})} 
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <h3 className="font-bold text-gray-800 border-b pb-2 mt-6 mb-4">Alertas de Ações Diárias (CRM)</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="inactive_client_days">Dias para Cliente Inativo</Label>
+                    <Input 
+                      id="inactive_client_days" 
+                      type="number"
+                      value={settings.inactive_client_days || 60} 
+                      onChange={e => setSettingsData({...settings, inactive_client_days: parseInt(e.target.value)})} 
+                      placeholder="Ex: 60"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="followup_days">Dias para Follow-up (Orçamentos)</Label>
+                    <Input 
+                      id="followup_days" 
+                      type="number"
+                      value={settings.followup_days || 3} 
+                      onChange={e => setSettingsData({...settings, followup_days: parseInt(e.target.value)})} 
+                      placeholder="Ex: 3"
                     />
                   </div>
                 </div>
@@ -602,10 +682,44 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle>Backup de Dados (CSV)</CardTitle>
               <CardDescription>
-                Faça o download de relatórios completos do sistema em formato Excel/CSV.
+                Configure o e-mail de recebimento e baixe relatórios completos em CSV.
               </CardDescription>
             </CardHeader>
+            <form onSubmit={handleSaveSettings}>
             <CardContent className="space-y-6">
+              
+              <div className="bg-gray-50 border p-4 rounded-lg space-y-4">
+                <h3 className="font-semibold">Envio de Backup Automático</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="backup_email">E-mail para Receber o Backup</Label>
+                    <Input 
+                      id="backup_email" 
+                      type="email"
+                      value={settings.backup_email || ''} 
+                      onChange={e => setSettingsData({...settings, backup_email: e.target.value})} 
+                      placeholder="seu@email.com"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="resend_api_key">Resend API Key (Servidor de E-mail)</Label>
+                    <Input 
+                      id="resend_api_key" 
+                      type="password"
+                      value={settings.resend_api_key || ''} 
+                      onChange={e => setSettingsData({...settings, resend_api_key: e.target.value})} 
+                      placeholder="re_..."
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end mt-4">
+                  <Button type="submit" className="bg-[#5C3D8F] hover:bg-[#4a3173] text-white" disabled={savingSettings}>
+                    {savingSettings && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Salvar Configurações de E-mail
+                  </Button>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 
                 <Card className="border shadow-sm">
@@ -661,6 +775,7 @@ export default function SettingsPage() {
 
               </div>
             </CardContent>
+            </form>
           </Card>
         </TabsContent>
       </Tabs>

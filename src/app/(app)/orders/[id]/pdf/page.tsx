@@ -3,12 +3,14 @@
 import { useEffect, useState, use } from 'react'
 import { getOrder, type Order } from '@/lib/api/orders'
 import { getSettings, type Settings } from '@/lib/api/settings'
+import { getStore } from '@/lib/api/stores'
 import { Printer, MapPin, Phone, Building } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 export default function OrderPdfPage({ params }: { params: Promise<{ id: string }> }) {
   const [order, setOrder] = useState<Order | null>(null)
   const [settings, setSettings] = useState<Settings | null>(null)
+  const [storeLogo, setStoreLogo] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -21,6 +23,17 @@ export default function OrderPdfPage({ params }: { params: Promise<{ id: string 
         ])
         setOrder(data)
         setSettings(settingsData)
+        
+        if (data.store_id) {
+          try {
+            const store = await getStore(data.store_id)
+            if (store && store.logo_url) {
+              setStoreLogo(store.logo_url)
+            }
+          } catch (e) {
+            console.warn('Could not fetch store logo')
+          }
+        }
       } catch (error) {
         console.error(error)
       } finally {
@@ -60,9 +73,9 @@ export default function OrderPdfPage({ params }: { params: Promise<{ id: string 
         {/* Cabeçalho */}
         <div className="flex justify-between items-start border-b-2 pb-6 mb-6" style={{ borderColor: settings?.primary_color || '#5C3D8F' }}>
           <div>
-            {settings?.logo_url ? (
+            {(storeLogo || settings?.logo_url) ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={settings.logo_url} alt="Logo" className="max-h-20 w-auto object-contain mb-2" />
+              <img src={storeLogo || settings?.logo_url || ''} alt="Logo" className="max-h-20 w-auto object-contain mb-2" />
             ) : (
               <h1 className="text-3xl font-black mb-1" style={{ color: settings?.primary_color || '#5C3D8F' }}>{settings?.business_name || 'CASA CRIATIVA'}</h1>
             )}

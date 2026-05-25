@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Company, createCompany, updateCompany, createCompanyContact, updateCompanyContact, deleteCompanyContact, type CompanyContact } from '@/lib/api/companies'
+import { Company, createCompany, updateCompany, deleteCompany, createCompanyContact, updateCompanyContact, deleteCompanyContact, type CompanyContact } from '@/lib/api/companies'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -38,6 +38,8 @@ export function CompanyForm({ initialData, isModal, onSuccess, onCancel }: Compa
       payment_method: 'Boleto',
       boleto_only: false,
       boleto_days: 30,
+      commission_type: 'percentage',
+      commission_value: 0
     }
   )
 
@@ -120,6 +122,21 @@ export function CompanyForm({ initialData, isModal, onSuccess, onCancel }: Compa
       setError(err.message || 'Ocorreu um erro ao salvar a empresa.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleDeleteCompany = async () => {
+    if (!initialData?.id) return;
+    if (window.confirm('Tem certeza que deseja excluir permanentemente esta empresa? Todos os contatos vinculados serão apagados.')) {
+      try {
+        setLoading(true)
+        await deleteCompany(initialData.id)
+        router.push('/companies')
+        router.refresh()
+      } catch (err: any) {
+        setError(err.message || 'Erro ao excluir a empresa.')
+        setLoading(false)
+      }
     }
   }
 
@@ -248,8 +265,41 @@ export function CompanyForm({ initialData, isModal, onSuccess, onCancel }: Compa
                 onChange={handleChange}
               />
             </div>
+            
+            <div className="space-y-2 md:col-span-2 mt-2 pt-2 border-t">
+              <h4 className="font-semibold text-sm text-[#5C3D8F]">Comissionamento de Parceiro B2B</h4>
+            </div>
 
-            <div className="flex items-center space-x-2 md:col-span-2 mt-2">
+            <div className="space-y-2">
+              <Label htmlFor="commission_type">Tipo de Comissão</Label>
+              <Select
+                value={formData.commission_type || 'percentage'}
+                onValueChange={(val) => handleSelectChange('commission_type', val)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="percentage">Porcentagem (%)</SelectItem>
+                  <SelectItem value="fixed">Valor Fixo (R$)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="commission_value">Valor / % da Comissão</Label>
+              <Input
+                id="commission_value"
+                name="commission_value"
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.commission_value || 0}
+                onChange={(e) => setFormData({ ...formData, commission_value: parseFloat(e.target.value) || 0 })}
+              />
+            </div>
+
+            <div className="flex items-center space-x-2 md:col-span-2 mt-4 pt-2 border-t">
               <Checkbox 
                 id="boleto_only" 
                 checked={formData.boleto_only || false}
@@ -331,19 +381,33 @@ export function CompanyForm({ initialData, isModal, onSuccess, onCancel }: Compa
 
           </div>
         </CardContent>
-        <CardFooter className="flex justify-end gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => isModal && onCancel ? onCancel() : router.push('/companies')}
-            disabled={loading}
-          >
-            Cancelar
-          </Button>
-          <Button type="submit" className="bg-[#5C3D8F] hover:bg-[#4a3173] text-white" disabled={loading}>
-            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Salvar
-          </Button>
+        <CardFooter className="flex justify-between items-center">
+          <div>
+            {initialData?.id && !isModal && (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={handleDeleteCompany}
+                disabled={loading}
+              >
+                <Trash2 className="h-4 w-4 mr-2" /> Excluir Empresa
+              </Button>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => isModal && onCancel ? onCancel() : router.push('/companies')}
+              disabled={loading}
+            >
+              Cancelar
+            </Button>
+            <Button type="submit" className="bg-[#5C3D8F] hover:bg-[#4a3173] text-white" disabled={loading}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Salvar
+            </Button>
+          </div>
         </CardFooter>
       </form>
     </Card>

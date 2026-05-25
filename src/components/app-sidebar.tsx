@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Store, Box, ShoppingCart, DollarSign, Settings, Building, Truck, Package, BookOpen, LogOut, Send, KanbanSquare, Calendar } from "lucide-react"
+import { LayoutDashboard, Users, Store, Box, ShoppingCart, DollarSign, Settings, Building, Truck, Package, BookOpen, LogOut, Send, KanbanSquare, Calendar, BarChart3, Image as ImageIcon, Megaphone } from "lucide-react"
 import { logout } from "@/app/login/actions"
 import { getSettings } from "@/lib/api/settings"
 
@@ -46,6 +46,21 @@ const items = [
     title: "Agenda de Entregas",
     url: "/calendar",
     icon: Calendar,
+  },
+  {
+    title: "Galeria / Portfólio",
+    url: "/gallery",
+    icon: ImageIcon,
+  },
+  {
+    title: "Inteligência e KPIs",
+    url: "/analytics",
+    icon: BarChart3,
+  },
+  {
+    title: "Vendas e Marketing",
+    url: "/marketing",
+    icon: Megaphone,
   },
   {
     title: "Fretes e Entregas",

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { getSettings } from '@/lib/api/settings'
 
 export default async function LoginPage({
   searchParams,
@@ -13,6 +14,9 @@ export default async function LoginPage({
   const params = await searchParams;
   const isSignup = params.mode === 'signup';
   
+  // Buscar config para o logo
+  const settings = await getSettings();
+  
   return (
     <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950 p-4 relative overflow-hidden">
       {/* Decorative background shapes */}
@@ -21,10 +25,17 @@ export default async function LoginPage({
 
       <Card className="w-full max-w-md border-0 shadow-2xl bg-white/70 dark:bg-zinc-900/70 backdrop-blur-xl relative z-10">
         <CardHeader className="space-y-2 text-center pb-8">
-          <div className="mx-auto bg-primary/10 w-16 h-16 rounded-2xl flex items-center justify-center mb-4">
-            <div className="w-8 h-8 bg-primary rounded-lg shadow-lg rotate-12 transition-transform hover:rotate-0 duration-300"></div>
+          <div className="mx-auto flex items-center justify-center mb-4">
+            {settings?.logo_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={settings.logo_url} alt="Logotipo Casa Criativa" className="max-h-24 object-contain" />
+            ) : (
+              <div className="bg-primary/10 w-16 h-16 rounded-2xl flex items-center justify-center">
+                <div className="w-8 h-8 bg-primary rounded-lg shadow-lg rotate-12 transition-transform hover:rotate-0 duration-300"></div>
+              </div>
+            )}
           </div>
-          <CardTitle className="text-3xl font-bold tracking-tight">Casa Criativa</CardTitle>
+          <CardTitle className="text-3xl font-bold tracking-tight">{settings?.business_name || 'Casa Criativa'}</CardTitle>
           <CardDescription className="text-muted-foreground text-sm">
             Sistema de Gestão Integrado
           </CardDescription>

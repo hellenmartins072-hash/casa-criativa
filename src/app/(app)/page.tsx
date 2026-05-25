@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { DollarSign, ShoppingCart, Activity, ArrowUpRight, ArrowDownRight, Award, Gift, Star, Repeat, Building, Target } from "lucide-react"
+import { DollarSign, ShoppingCart, Activity, ArrowUpRight, ArrowDownRight, Award, Gift, Star, Repeat, Building, Target, AlertCircle, Clock } from "lucide-react"
 import { getDashboardMetrics } from "@/lib/api/finance"
 import { getSettings } from "@/lib/api/settings"
 import { 
@@ -10,7 +10,9 @@ import {
   getB2BPartnerRanking, 
   getRecurringClients, 
   getBirthdayClients, 
-  getVIPSeasonalClients 
+  getVIPSeasonalClients,
+  getInactiveClients,
+  getPendingFollowUps
 } from "@/lib/api/analytics"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
@@ -22,7 +24,9 @@ export default function DashboardPage() {
     b2bRanking: [],
     recurring: [],
     birthdays: [],
-    vips: []
+    vips: [],
+    inactive: [],
+    followups: []
   })
   const [settings, setSettings] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -36,7 +40,10 @@ export default function DashboardPage() {
           b2bRanking, 
           recurring, 
           birthdays, 
-          vips
+          vips,
+          settingsData,
+          inactive,
+          followups
         ] = await Promise.all([
           getDashboardMetrics(),
           getClientRankingByValue(),
@@ -44,11 +51,13 @@ export default function DashboardPage() {
           getRecurringClients(),
           getBirthdayClients(),
           getVIPSeasonalClients(),
-          getSettings()
+          getSettings(),
+          getInactiveClients(60),
+          getPendingFollowUps(3)
         ])
         
         setMetrics(data)
-        setAnalytics({ clientRanking, b2bRanking, recurring, birthdays, vips })
+        setAnalytics({ clientRanking, b2bRanking, recurring, birthdays, vips, inactive, followups })
         setSettings(settingsData)
       } catch (error) {
         console.error('Failed to load metrics', error)
@@ -186,8 +195,63 @@ export default function DashboardPage() {
         </Card>
       </div>
       
+      {/* ALERTA DE AÇÕES DIÁRIAS (CRM Ativo) */}
+      <div className="mt-8">
+        <h3 className="text-xl font-bold text-[#5C3D8F] mb-4">Ações Diárias (CRM Ativo)</h3>
+        <div className="grid gap-4 md:grid-cols-2">
+          
+          <Card className="shadow-sm border-l-4 border-l-orange-500">
+            <CardHeader className="pb-2 bg-orange-50/50">
+              <CardTitle className="flex items-center text-orange-700 text-base">
+                <Clock className="h-5 w-5 mr-2" /> Follow-up Pendente
+              </CardTitle>
+              <CardDescription>Orçamentos sem resposta (&gt;{settings?.followup_days || 3} dias)</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-4 max-h-[200px] overflow-y-auto">
+              <div className="space-y-3">
+                {analytics.followups?.length > 0 ? analytics.followups.map((f: any) => (
+                  <div key={f.id} className="flex justify-between items-center text-sm border-b pb-2 last:border-0">
+                    <div>
+                      <span className="font-semibold">{f.clientName}</span>
+                      <p className="text-xs text-muted-foreground">Pedido #{f.orderNumber}</p>
+                    </div>
+                    <Badge variant="outline" className="text-orange-600 border-orange-200">Há {f.daysPending} dias</Badge>
+                  </div>
+                )) : (
+                  <p className="text-sm text-muted-foreground text-center">Nenhum orçamento pendente.</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-sm border-l-4 border-l-red-500">
+            <CardHeader className="pb-2 bg-red-50/50">
+              <CardTitle className="flex items-center text-red-700 text-base">
+                <AlertCircle className="h-5 w-5 mr-2" /> Clientes Inativos
+              </CardTitle>
+              <CardDescription>Sem compras há mais de {settings?.inactive_client_days || 60} dias</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-4 max-h-[200px] overflow-y-auto">
+              <div className="space-y-3">
+                {analytics.inactive?.length > 0 ? analytics.inactive.slice(0, 10).map((c: any) => (
+                  <div key={c.id} className="flex justify-between items-center text-sm border-b pb-2 last:border-0">
+                    <div>
+                      <span className="font-semibold">{c.full_name}</span>
+                    </div>
+                    <Badge variant="outline" className="text-red-600 border-red-200">+{c.daysInactive} dias</Badge>
+                  </div>
+                )) : (
+                  <p className="text-sm text-muted-foreground text-center">Nenhum cliente inativo.</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+        </div>
+      </div>
+      
       {/* SEÇÃO ANALÍTICA E CRM */}
-      <h3 className="text-xl font-bold text-[#5C3D8F] mt-8 pt-4 border-t">CRM e Desempenho de Clientes</h3>
+      <h3 className="text-xl font-bold text-[#5C3D8F] mt-8 pt-4 border-t">Estatísticas de Vendas</h3>
       
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {/* Ranking de Clientes (Varejo) */}

@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Plus, Search, MoreHorizontal, Building2, UserX } from 'lucide-react'
-import { getCompanies, type Company } from '@/lib/api/companies'
+import { getCompanies, deleteCompany, type Company } from '@/lib/api/companies'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -51,6 +51,18 @@ export default function CompaniesPage() {
     company.cnpj?.includes(searchQuery) ||
     company.trading_name?.toLowerCase().includes(searchQuery.toLowerCase())
   )
+
+  const handleDelete = async (id: string) => {
+    if (window.confirm('Tem certeza que deseja excluir esta empresa? Esta ação não pode ser desfeita e pode afetar pedidos vinculados.')) {
+      try {
+        await deleteCompany(id)
+        setCompanies(prev => prev.filter(c => c.id !== id))
+      } catch (error) {
+        console.error('Error deleting company:', error)
+        alert('Erro ao excluir a empresa.')
+      }
+    }
+  }
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -147,8 +159,15 @@ export default function CompaniesPage() {
                                 Editar / Visualizar
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-destructive">
-                                Despedir Empresa
+                              <DropdownMenuItem 
+                                className="text-destructive cursor-pointer" 
+                                onSelect={() => {
+                                  setTimeout(() => {
+                                    handleDelete(company.id);
+                                  }, 100);
+                                }}
+                              >
+                                Excluir Empresa
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
