@@ -871,6 +871,7 @@ export function OrderForm({ initialData }: OrderFormProps) {
                 placeholder="Anotações internas ou regras da entrega..."
               />
             </div>
+          </div>
             
             <div className="space-y-3 p-4 border rounded-lg bg-gray-50">
               <div className="flex justify-between items-center text-sm border-b pb-2">
