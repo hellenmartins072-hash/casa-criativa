@@ -95,23 +95,26 @@ export function OrderForm({ initialData }: OrderFormProps) {
   useEffect(() => {
     async function loadSupportData() {
       try {
-        const [cliData, compData, prodData, shipData] = await Promise.all([
+        // Usa Promise.allSettled para não falhar tudo se uma tabela não existir (ex: shipping_partners)
+        const [cliRes, compRes, prodRes, shipRes] = await Promise.allSettled([
           getClients(),
           getCompanies(),
           getActiveProducts(),
           getShippingPartners()
         ])
-        setClients(cliData || [])
-        setCompanies(compData || [])
-        setProducts(prodData || [])
-        setShippingPartners(shipData || [])
+
+        if (cliRes.status === 'fulfilled') setClients(cliRes.value || [])
+        if (compRes.status === 'fulfilled') setCompanies(compRes.value || [])
+        if (prodRes.status === 'fulfilled') setProducts(prodRes.value || [])
+        if (shipRes.status === 'fulfilled') setShippingPartners(shipRes.value || [])
+
         if (initialData?.id) {
-          const [checkData, reworkData] = await Promise.all([
+          const [checkRes, reworkRes] = await Promise.allSettled([
             getOrderChecklist(initialData.id),
             getOrderReworks(initialData.id)
           ])
-          setChecklist(checkData || [])
-          setReworks(reworkData || [])
+          if (checkRes.status === 'fulfilled') setChecklist(checkRes.value || [])
+          if (reworkRes.status === 'fulfilled') setReworks(reworkRes.value || [])
         }
       } catch (err) {
         console.error('Error loading support data', err)
