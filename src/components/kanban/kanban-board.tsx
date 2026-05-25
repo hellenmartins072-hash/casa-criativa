@@ -80,8 +80,8 @@ function SortableOrderCard({ order }: { order: Order }) {
           <div className="flex justify-between items-start mb-2">
             <span className="text-xs font-bold text-gray-500">#{order.order_number}</span>
             <div className="flex items-center gap-1">
-               {isLate && <AlertCircle className="w-4 h-4 text-red-500" title="Atrasado" />}
-               {isWarning && <AlertCircle className="w-4 h-4 text-orange-400" title="Vence em breve" />}
+               {isLate && <AlertCircle className="w-4 h-4 text-red-500" />}
+               {isWarning && <AlertCircle className="w-4 h-4 text-orange-400" />}
             </div>
           </div>
           <p className="font-semibold text-sm leading-tight text-gray-800 line-clamp-2 mb-2">

@@ -71,7 +71,7 @@ export function ProductForm({ initialData }: ProductFormProps) {
     setFormData({ ...formData, [e.target.name]: isNaN(val) ? 0 : val })
   }
 
-  const handleSelectChange = (name: string, value: string) => {
+  const handleSelectChange = (name: string, value: string | null) => {
     setFormData({ ...formData, [name]: value })
   }
 

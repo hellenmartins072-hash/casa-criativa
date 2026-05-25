@@ -21,7 +21,7 @@ export type Company = {
   instagram?: string | null
   address?: string | null
   store_ids?: string[] | null
-  payment_method?: 'PIX' | 'Cartão de crédito' | 'Cartão de débito' | 'Transferência' | 'Boleto' | 'Dinheiro' | null
+  payment_methods?: string[] | null
   boleto_only?: boolean
   boleto_days?: number | null
   status?: 'Ativo' | 'Despedido'

@@ -26,6 +26,10 @@ export type FinancialTransaction = {
   supplier_id: string | null
   notes: string | null
   created_at: string
+  is_recurring?: boolean
+  current_installment?: number
+  total_installments?: number
+  recurrence_period?: string
 }
 
 export async function getTransactions() {

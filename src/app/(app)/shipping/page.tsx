@@ -96,7 +96,7 @@ export default function ShippingPage() {
         </div>
         <div className="flex items-center space-x-2">
           <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-            <DialogTrigger asChild>
+            <DialogTrigger>
               <Button onClick={openNewModal} className="bg-[#5C3D8F] hover:bg-[#4a3173] text-white">
                 <Plus className="mr-2 h-4 w-4" /> Novo Parceiro
               </Button>

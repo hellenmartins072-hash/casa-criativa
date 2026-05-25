@@ -40,7 +40,11 @@ export type Order = {
   shipping_partner_id?: string | null
   out_of_state_shipping?: boolean
   payment_notes?: string | null
-
+  
+  // Novos campos Lote 3
+  reseller_id?: string | null
+  quote_date?: string | null
+  order_date?: string | null
   created_at: string
   
   // Relações que vamos puxar do banco
@@ -55,7 +59,8 @@ export async function getOrders() {
     .select(`
       *,
       clients(full_name),
-      companies(business_name, trading_name)
+      companies(business_name, trading_name),
+        resellers(full_name)
     `)
     .order('created_at', { ascending: false })
 
@@ -73,7 +78,8 @@ export async function getOrder(id: string) {
     .select(`
       *,
       clients(full_name, whatsapp, email),
-      companies(business_name, trading_name, phone, cnpj)
+      companies(business_name, trading_name, phone, cnpj),
+        resellers(full_name, whatsapp, phone)
     `)
     .eq('id', id)
     .single()
@@ -113,7 +119,10 @@ export async function createOrder(orderData: Partial<Order>, items: OrderItem[])
     entry_date: orderData.entry_date || null,
     final_payment_date: orderData.final_payment_date || null,
     delivery_date: orderData.delivery_date || null,
-    shipping_partner_id: orderData.shipping_partner_id || null,
+    shipping_partner_id: orderData.shipping_partner_id,
+      reseller_id: orderData.reseller_id,
+      quote_date: orderData.quote_date,
+      order_date: orderData.order_date || null,
     out_of_state_shipping: orderData.out_of_state_shipping || false,
     payment_notes: orderData.payment_notes || null
   }
@@ -121,6 +130,9 @@ export async function createOrder(orderData: Partial<Order>, items: OrderItem[])
   if (orderData.client_id) payload.client_id = orderData.client_id
   if (orderData.company_id) payload.company_id = orderData.company_id
   if (orderData.store_id) payload.store_id = orderData.store_id
+    if (orderData.reseller_id) payload.reseller_id = orderData.reseller_id
+    if (orderData.quote_date) payload.quote_date = orderData.quote_date
+    if (orderData.order_date) payload.order_date = orderData.order_date
 
   const { data: newOrder, error: orderError } = await supabase
     .from('orders')
@@ -198,6 +210,9 @@ export async function updateOrder(id: string, orderData: Partial<Order>, items: 
     final_payment_date: orderData.final_payment_date,
     delivery_date: orderData.delivery_date,
     shipping_partner_id: orderData.shipping_partner_id,
+      reseller_id: orderData.reseller_id,
+      quote_date: orderData.quote_date,
+      order_date: orderData.order_date,
     out_of_state_shipping: orderData.out_of_state_shipping,
     payment_notes: orderData.payment_notes
   }

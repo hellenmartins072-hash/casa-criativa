@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { Order, OrderItem, createOrder, updateOrder } from '@/lib/api/orders'
 import { getClients, createClient } from '@/lib/api/clients'
 import { getCompanies, createCompany } from '@/lib/api/companies'
+import { getResellers } from '@/lib/api/resellers'
+import { ResellerFormDialog } from '@/components/reseller-form-dialog'
 import { getShippingPartners, type ShippingPartner } from '@/lib/api/shipping'
 import { getActiveProducts, type Product } from '@/lib/api/products'
 import { getOrderChecklist, createChecklistStep, toggleChecklistStep, deleteChecklistStep, getOrderReworks, registerRework, deleteRework, type OrderChecklist, type OrderRework } from '@/lib/api/operations'
@@ -44,6 +46,8 @@ export function OrderForm({ initialData }: OrderFormProps) {
   // Dados de suporte
   const [clients, setClients] = useState<any[]>([])
   const [companies, setCompanies] = useState<any[]>([])
+  const [resellers, setResellers] = useState<any[]>([])
+  const [isNewResellerModalOpen, setIsNewResellerModalOpen] = useState(false)
   const [products, setProducts] = useState<Product[]>([])
   const [shippingPartners, setShippingPartners] = useState<ShippingPartner[]>([])
 
@@ -59,6 +63,9 @@ export function OrderForm({ initialData }: OrderFormProps) {
       status: 'Orçamento',
       client_id: '',
       company_id: '',
+      reseller_id: '',
+      quote_date: new Date().toISOString().split('T')[0],
+      order_date: '',
       payment_method: null,
       payment_status: 'Pendente',
       notes: '',
@@ -97,17 +104,19 @@ export function OrderForm({ initialData }: OrderFormProps) {
     async function loadSupportData() {
       try {
         // Usa Promise.allSettled para não falhar tudo se uma tabela não existir (ex: shipping_partners)
-        const [cliRes, compRes, prodRes, shipRes] = await Promise.allSettled([
+        const [cliRes, compRes, prodRes, shipRes, resRes] = await Promise.allSettled([
           getClients(),
           getCompanies(),
           getActiveProducts(),
-          getShippingPartners()
+          getShippingPartners(),
+          getResellers()
         ])
 
         if (cliRes.status === 'fulfilled') setClients(cliRes.value || [])
         if (compRes.status === 'fulfilled') setCompanies(compRes.value || [])
         if (prodRes.status === 'fulfilled') setProducts(prodRes.value || [])
         if (shipRes.status === 'fulfilled') setShippingPartners(shipRes.value || [])
+        if (resRes && resRes.status === 'fulfilled') setResellers(resRes.value || [])
 
         if (initialData?.id) {
           const [checkRes, reworkRes] = await Promise.allSettled([
@@ -151,7 +160,7 @@ export function OrderForm({ initialData }: OrderFormProps) {
     setFormData({ ...formData, [e.target.name]: isNaN(val) ? 0 : val })
   }
 
-  const handleSelectChange = (name: string, value: string) => {
+  const handleSelectChange = (name: string, value: string | null) => {
     if (value === 'none') {
       setFormData({ ...formData, [name]: null })
     } else {
@@ -447,7 +456,7 @@ export function OrderForm({ initialData }: OrderFormProps) {
                 <h3 className="font-semibold text-lg">Vínculo do Cliente</h3>
                 {(formData.client_id || formData.company_id) && (
                   <Dialog>
-                    <DialogTrigger asChild>
+                    <DialogTrigger>
                       <Button type="button" variant="outline" size="sm" className="h-8 text-[#5C3D8F] border-[#5C3D8F]">
                         <History className="h-4 w-4 mr-2" /> Histórico CRM
                       </Button>
@@ -501,11 +510,46 @@ export function OrderForm({ initialData }: OrderFormProps) {
                   </Button>
                 </div>
               </div>
+              <div className="text-center text-sm text-muted-foreground">- OU -</div>
+              <div className="space-y-2">
+                <Label>Revendedor Autorizado</Label>
+                <div className="flex gap-2">
+                  <select
+                    value={formData.reseller_id || 'none'}
+                    onChange={(e) => handleSelectChange('reseller_id', e.target.value)}
+                    className="flex h-9 flex-1 rounded-md border border-input bg-white px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm bg-purple-50 border-purple-200 text-[#5C3D8F]"
+                  >
+                    <option value="none">-- Nenhum --</option>
+                    {resellers.map(r => (
+                      <option key={r.id} value={r.id}>{r.full_name}</option>
+                    ))}
+                  </select>
+                  <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => setIsNewResellerModalOpen(true)} title="Novo Revendedor">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
             </div>
 
             <div className="space-y-4 p-4 border rounded-lg bg-gray-50/50">
               <h3 className="font-semibold text-lg">Detalhes</h3>
               <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Data do Orçamento</Label>
+                  <Input 
+                    type="date"
+                    value={formData.quote_date || ''}
+                    onChange={(e) => handleSelectChange('quote_date', e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Data do Pedido (Aprovação)</Label>
+                  <Input 
+                    type="date"
+                    value={formData.order_date || ''}
+                    onChange={(e) => handleSelectChange('order_date', e.target.value)}
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label>Status do Pedido</Label>
                   <div className="flex gap-2">
@@ -786,7 +830,7 @@ export function OrderForm({ initialData }: OrderFormProps) {
                       Registro de Retrabalhos
                     </h4>
                     <Dialog open={isReworkModalOpen} onOpenChange={setIsReworkModalOpen}>
-                      <DialogTrigger asChild>
+                      <DialogTrigger>
                         <Button type="button" variant="outline" size="sm" className="h-7 text-xs border-red-200 text-red-600 hover:bg-red-50">
                           <Plus className="mr-1 h-3 w-3" /> Registrar
                         </Button>

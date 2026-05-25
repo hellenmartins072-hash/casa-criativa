@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ArrowDownRight, ArrowUpRight, TrendingUp, Package, Skeleton } from 'lucide-react'
+import { ArrowDownRight, ArrowUpRight, TrendingUp, Package } from 'lucide-react'
 import { getMonthlyFinancialSummary, getPendingFinancials, getTopSellingProducts, getMostProfitableProducts } from '@/lib/api/analytics'
 
 export function FinanceDashboard() {

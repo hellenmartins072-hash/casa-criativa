@@ -64,7 +64,7 @@ export function ClientForm({ initialData, isModal, onSuccess, onCancel }: Client
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
-  const handleSelectChange = (name: string, value: string) => {
+  const handleSelectChange = (name: string, value: string | null) => {
     setFormData({ ...formData, [name]: value })
   }
 
@@ -197,7 +197,7 @@ export function ClientForm({ initialData, isModal, onSuccess, onCancel }: Client
             <div className="space-y-2">
               <Label htmlFor="client_type">Tipo de Cliente</Label>
               <Select
-                value={formData.client_type}
+                value={formData.client_type || ''}
                 onValueChange={(val) => handleSelectChange('client_type', val)}
               >
                 <SelectTrigger>
@@ -257,7 +257,7 @@ export function ClientForm({ initialData, isModal, onSuccess, onCancel }: Client
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
               <Select
-                value={formData.status}
+                value={formData.status || ''}
                 onValueChange={(val) => handleSelectChange('status', val)}
               >
                 <SelectTrigger>

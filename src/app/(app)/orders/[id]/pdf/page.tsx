@@ -51,7 +51,7 @@ export default function OrderPdfPage({ params }: { params: Promise<{ id: string 
     return <div className="p-10 text-center text-red-500">Pedido não encontrado.</div>
   }
 
-  const clientName = order.clients?.full_name || order.companies?.trading_name || order.companies?.business_name || 'Cliente Removido'
+  const clientName = order.clients?.full_name || order.companies?.trading_name || order.companies?.business_name || order.resellers?.full_name || 'Cliente Removido'
   // Identifica se é orçamento ou pedido firme
   const docTitle = order.status === 'Orçamento' ? 'PROPOSTA COMERCIAL / ORÇAMENTO' : 'PEDIDO DE VENDA'
 
@@ -89,8 +89,13 @@ export default function OrderPdfPage({ params }: { params: Promise<{ id: string 
             <h2 className="text-2xl font-bold text-gray-800 tracking-tight">{docTitle}</h2>
             <p className="text-gray-500 font-mono mt-1 text-lg">#{order.order_number.toString().padStart(5, '0')}</p>
             <p className="mt-4 text-sm text-gray-600">
-              <strong>Emissão:</strong> {new Date(order.created_at).toLocaleDateString('pt-BR')}
+              <strong>Data do Orçamento/Emissão:</strong> {new Date(order.quote_date || order.created_at).toLocaleDateString('pt-BR')}
             </p>
+            {order.order_date && (
+              <p className="mt-1 text-sm text-gray-600">
+                <strong>Data do Pedido/Aprovação:</strong> {new Date(order.order_date).toLocaleDateString('pt-BR')}
+              </p>
+            )}
             {order.deadline && (
               <p className="text-sm text-gray-600">
                 <strong>Previsão/Validade:</strong> {new Date(order.deadline).toLocaleDateString('pt-BR')}

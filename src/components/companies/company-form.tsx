@@ -35,11 +35,9 @@ export function CompanyForm({ initialData, isModal, onSuccess, onCancel }: Compa
       phone: '',
       address: '',
       status: 'Ativo',
-      payment_method: 'Boleto',
+      payment_methods: [],
       boleto_only: false,
-      boleto_days: 30,
-      commission_type: 'percentage',
-      commission_value: 0
+      boleto_days: 30
     }
   )
 
@@ -47,7 +45,7 @@ export function CompanyForm({ initialData, isModal, onSuccess, onCancel }: Compa
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
-  const handleSelectChange = (name: string, value: string) => {
+  const handleSelectChange = (name: string, value: string | null) => {
     setFormData({ ...formData, [name]: value })
   }
 
@@ -212,7 +210,7 @@ export function CompanyForm({ initialData, isModal, onSuccess, onCancel }: Compa
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
               <Select
-                value={formData.status}
+                value={formData.status || ''}
                 onValueChange={(val) => handleSelectChange('status', val)}
               >
                 <SelectTrigger>
@@ -235,25 +233,25 @@ export function CompanyForm({ initialData, isModal, onSuccess, onCancel }: Compa
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="payment_method">Forma de Pagamento</Label>
-              <Select
-                value={formData.payment_method || ''}
-                onValueChange={(val) => handleSelectChange('payment_method', val)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="PIX">PIX</SelectItem>
-                  <SelectItem value="Cartão de crédito">Cartão de crédito</SelectItem>
-                  <SelectItem value="Cartão de débito">Cartão de débito</SelectItem>
-                  <SelectItem value="Transferência">Transferência</SelectItem>
-                  <SelectItem value="Boleto">Boleto</SelectItem>
-                  <SelectItem value="Dinheiro">Dinheiro</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <div className="space-y-2 md:col-span-2">
+  <Label>Formas de Pagamento Aceitas</Label>
+  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
+    {['PIX', 'Cartão de crédito', 'Cartão de débito', 'Transferência', 'Boleto', 'Dinheiro'].map(method => (
+      <div key={method} className="flex items-center space-x-2 bg-muted/20 p-2 rounded-md border">
+        <Checkbox
+          id={`pay-${method}`}
+          checked={(formData.payment_methods || []).includes(method)}
+          onCheckedChange={(checked) => {
+            const current = formData.payment_methods || [];
+            const updated = checked ? [...current, method] : current.filter(m => m !== method);
+            setFormData({ ...formData, payment_methods: updated });
+          }}
+        />
+        <Label htmlFor={`pay-${method}`} className="text-sm cursor-pointer">{method}</Label>
+      </div>
+    ))}
+  </div>
+</div>
             
             <div className="space-y-2">
               <Label htmlFor="boleto_days">Prazo do Boleto (Dias)</Label>
@@ -266,39 +264,6 @@ export function CompanyForm({ initialData, isModal, onSuccess, onCancel }: Compa
               />
             </div>
             
-            <div className="space-y-2 md:col-span-2 mt-2 pt-2 border-t">
-              <h4 className="font-semibold text-sm text-[#5C3D8F]">Comissionamento de Parceiro B2B</h4>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="commission_type">Tipo de Comissão</Label>
-              <Select
-                value={formData.commission_type || 'percentage'}
-                onValueChange={(val) => handleSelectChange('commission_type', val)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="percentage">Porcentagem (%)</SelectItem>
-                  <SelectItem value="fixed">Valor Fixo (R$)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="commission_value">Valor / % da Comissão</Label>
-              <Input
-                id="commission_value"
-                name="commission_value"
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.commission_value || 0}
-                onChange={(e) => setFormData({ ...formData, commission_value: parseFloat(e.target.value) || 0 })}
-              />
-            </div>
-
             <div className="flex items-center space-x-2 md:col-span-2 mt-4 pt-2 border-t">
               <Checkbox 
                 id="boleto_only" 

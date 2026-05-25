@@ -4,6 +4,7 @@ import { Plus, Search, ArrowUpRight, ArrowDownRight, Trash2 } from 'lucide-react
 import { getTransactions, createTransaction, deleteTransaction, updateTransaction, getBankAccounts, createBankAccount, deleteBankAccount, type FinancialTransaction, type BankAccount } from '@/lib/api/finance'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -37,7 +38,11 @@ export default function FinancePage() {
     due_date: new Date().toISOString().split('T')[0],
     status: 'Pago',
     payment_method: 'PIX',
-    bank_account_id: ''
+    bank_account_id: '',
+    is_recurring: false,
+    current_installment: 1,
+    total_installments: 1,
+    recurrence_period: 'Mensal'
   })
   
   const [accounts, setAccounts] = useState<BankAccount[]>([])
@@ -88,13 +93,17 @@ export default function FinancePage() {
         payment_date: formData.status === 'Pago' ? formData.due_date : null,
         status: formData.status as 'Pendente' | 'Pago',
         payment_method: formData.payment_method,
-        bank_account_id: formData.bank_account_id || null
+        bank_account_id: formData.bank_account_id || null,
+        is_recurring: formData.is_recurring,
+        current_installment: formData.current_installment,
+        total_installments: formData.total_installments,
+        recurrence_period: formData.recurrence_period
       })
       setIsModalOpen(false)
       loadData()
       // reset form
       setFormData({
-        type: 'Despesa', category: 'Fornecedor', description: '', amount: '', due_date: new Date().toISOString().split('T')[0], status: 'Pago', payment_method: 'PIX', bank_account_id: accounts.length > 0 ? accounts[0].id : ''
+        type: 'Despesa', category: 'Fornecedor', description: '', amount: '', due_date: new Date().toISOString().split('T')[0], status: 'Pago', payment_method: 'PIX', bank_account_id: accounts.length > 0 ? accounts[0].id : '', is_recurring: false, current_installment: 1, total_installments: 1, recurrence_period: 'Mensal'
       })
     } catch (err) {
       alert("Erro ao salvar transação.")

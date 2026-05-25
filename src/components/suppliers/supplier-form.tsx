@@ -45,7 +45,7 @@ export function SupplierForm({ initialData }: SupplierFormProps) {
     setFormData({ ...formData, [e.target.name]: parseInt(e.target.value) || 0 })
   }
 
-  const handleSelectChange = (name: string, value: string) => {
+  const handleSelectChange = (name: string, value: string | null) => {
     setFormData({ ...formData, [name]: value })
   }
 

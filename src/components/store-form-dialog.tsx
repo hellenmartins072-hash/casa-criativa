@@ -108,7 +108,7 @@ export function StoreFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+      <DialogTrigger>
         {triggerButton || (
           <Button className="flex items-center gap-2">
             <Plus className="w-4 h-4" />

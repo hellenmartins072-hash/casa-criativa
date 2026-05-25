@@ -195,7 +195,7 @@ export default function ContractPage() {
             </p>
             <p className="mt-2">
               Frete/Entrega: R$ {Number(order?.shipping_cost || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-              {order?.discount_amount > 0 && ` | Desconto: R$ ${Number(order.discount_amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+              {order?.discount_amount > 0 && ` | Desconto: R$ ${Number((order?.discount_amount || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
             </p>
           </section>
 
@@ -226,7 +226,7 @@ export default function ContractPage() {
                 Aceito em {new Date(order?.contract_accepted_at || '').toLocaleString('pt-BR')}
               </p>
               {order?.contract_ip && (
-                <p className="text-xs text-green-700/60 mt-1">IP registrado: {order.contract_ip}</p>
+                <p className="text-xs text-green-700/60 mt-1">IP registrado: {""}</p>
               )}
             </div>
           ) : (
