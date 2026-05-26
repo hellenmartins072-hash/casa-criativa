@@ -48,6 +48,7 @@ export function ResellerFormDialog({
     notes: "",
     status: "Ativo",
     discount_percentage: 0,
+    birth_date: "",
   })
 
   useEffect(() => {
@@ -65,6 +66,7 @@ export function ResellerFormDialog({
         notes: "",
         status: "Ativo",
         discount_percentage: 0,
+        birth_date: "",
       })
     }
   }, [initialData, open])
@@ -143,6 +145,15 @@ export function ResellerFormDialog({
                   id="social_media"
                   value={formData.social_media || ''}
                   onChange={(e) => setFormData({...formData, social_media: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="birth_date">Data de Nascimento / Fundação</Label>
+                <Input
+                  id="birth_date"
+                  type="date"
+                  value={formData.birth_date || ''}
+                  onChange={(e) => setFormData({...formData, birth_date: e.target.value})}
                 />
               </div>
             </div>

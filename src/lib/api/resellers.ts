@@ -11,6 +11,7 @@ export type Reseller = {
   social_media?: string | null
   bank_details?: string | null
   notes?: string | null
+  birth_date?: string | null
   status: 'Ativo' | 'Inativo' | 'Suspenso'
   discount_percentage: number
   created_at?: string

@@ -22,6 +22,7 @@ export type Company = {
   address?: string | null
   store_ids?: string[] | null
   payment_methods?: string[] | null
+  birth_date?: string | null
   boleto_only?: boolean
   boleto_days?: number | null
   status?: 'Ativo' | 'Despedido'

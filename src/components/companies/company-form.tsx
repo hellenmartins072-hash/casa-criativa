@@ -37,7 +37,8 @@ export function CompanyForm({ initialData, isModal, onSuccess, onCancel }: Compa
       status: 'Ativo',
       payment_methods: [],
       boleto_only: false,
-      boleto_days: 30
+      boleto_days: 30,
+        birth_date: ''
     }
   )
 
