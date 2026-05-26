@@ -77,10 +77,13 @@ export function ResellerFormDialog({
     setError("")
 
     try {
+      const payloadToSave = { ...formData };
+      if (payloadToSave.birth_date === "") payloadToSave.birth_date = null;
+
       if (initialData?.id) {
-        await updateReseller(initialData.id, formData)
+        await updateReseller(initialData.id, payloadToSave)
       } else {
-        await createReseller(formData)
+        await createReseller(payloadToSave)
       }
       setOpen(false)
       if (onSave) onSave()

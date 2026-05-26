@@ -84,6 +84,7 @@ export function CompanyForm({ initialData, isModal, onSuccess, onCancel }: Compa
       // 1. Salvar Empresa (Removendo o array de contacts para não dar erro no Supabase na hora de salvar só a empresa)
       const payloadToSave = { ...formData }
       delete payloadToSave.contacts
+      if (payloadToSave.birth_date === "") payloadToSave.birth_date = null;
 
       if (companyId) {
         await updateCompany(companyId, payloadToSave)
