@@ -58,6 +58,10 @@ export function OrderForm({ initialData }: OrderFormProps) {
   const [isNewCompanyModalOpen, setIsNewCompanyModalOpen] = useState(false)
 
   // Formulário Principal
+  const defaultQuoteDate = new Date();
+  const defaultDeadline = new Date(defaultQuoteDate);
+  defaultDeadline.setDate(defaultDeadline.getDate() + 3);
+
   const [formData, setFormData] = useState<Partial<Order>>(
     initialData || {
       status: 'Orçamento',
@@ -68,8 +72,9 @@ export function OrderForm({ initialData }: OrderFormProps) {
       order_date: '',
       payment_method: null,
       payment_status: 'Pendente',
+      amount_paid: 0,
       notes: '',
-      deadline: '',
+      deadline: defaultDeadline.toISOString(),
       discount_amount: 0,
       shipping_cost: 0,
       credit_installments: 1,
@@ -374,8 +379,17 @@ export function OrderForm({ initialData }: OrderFormProps) {
 
     try {
       let finalFormData = { ...formData }
-      if (finalFormData.client_id === '') finalFormData.client_id = null
-      if (finalFormData.company_id === '') finalFormData.company_id = null
+      if (finalFormData.client_id === '' || finalFormData.client_id === 'none') finalFormData.client_id = null
+      if (finalFormData.company_id === '' || finalFormData.company_id === 'none') finalFormData.company_id = null
+      if (finalFormData.reseller_id === '' || finalFormData.reseller_id === 'none') finalFormData.reseller_id = null
+      if (finalFormData.shipping_partner_id === '' || finalFormData.shipping_partner_id === 'none') finalFormData.shipping_partner_id = null
+
+      const orderBalance = (finalFormData.total_amount || 0) - (finalFormData.amount_paid || 0);
+      if (orderBalance <= 0 && finalFormData.payment_status === 'Pendente') {
+        finalFormData.payment_status = 'Pago';
+      } else if (orderBalance > 0 && finalFormData.amount_paid > 0 && finalFormData.payment_status === 'Pendente') {
+        finalFormData.payment_status = 'Pago Parcial';
+      }
 
       let savedOrder;
       if (initialData?.id) {
@@ -627,6 +641,24 @@ export function OrderForm({ initialData }: OrderFormProps) {
                     <option value="Pago Parcial">Pago Parcial</option>
                     <option value="Pago">Pago</option>
                   </select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Valor Pago (R$)</Label>
+                  <Input 
+                    type="number" step="0.01" min="0"
+                    name="amount_paid"
+                    value={formData.amount_paid || 0}
+                    onChange={handleNumberChange}
+                    className="bg-white font-semibold text-green-700"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Restante a Pagar</Label>
+                  <Input 
+                    type="number" readOnly
+                    value={Math.max(0, (formData.total_amount || 0) - (formData.amount_paid || 0)).toFixed(2)}
+                    className="bg-gray-50 font-bold text-red-600"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Data Entrada (Ex: 50%)</Label>

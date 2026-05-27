@@ -26,6 +26,7 @@ export type Order = {
   total_amount: number
   discount_amount: number
   shipping_cost: number
+  amount_paid?: number
   payment_method?: PaymentMethod | null
   payment_status?: string
   notes?: string | null
@@ -108,6 +109,7 @@ export async function createOrder(orderData: Partial<Order>, items: OrderItem[])
     total_amount: orderData.total_amount || 0,
     discount_amount: orderData.discount_amount || 0,
     shipping_cost: orderData.shipping_cost || 0,
+    amount_paid: orderData.amount_paid || 0,
     payment_method: orderData.payment_method || null,
     payment_status: orderData.payment_status || 'Pendente',
     notes: orderData.notes || '',
@@ -119,20 +121,24 @@ export async function createOrder(orderData: Partial<Order>, items: OrderItem[])
     entry_date: orderData.entry_date || null,
     final_payment_date: orderData.final_payment_date || null,
     delivery_date: orderData.delivery_date || null,
-    shipping_partner_id: orderData.shipping_partner_id,
-      reseller_id: orderData.reseller_id,
-      quote_date: orderData.quote_date,
-      order_date: orderData.order_date || null,
+    quote_date: orderData.quote_date,
+    order_date: orderData.order_date || null,
     out_of_state_shipping: orderData.out_of_state_shipping || false,
     payment_notes: orderData.payment_notes || null
   }
 
-  if (orderData.client_id) payload.client_id = orderData.client_id
-  if (orderData.company_id) payload.company_id = orderData.company_id
-  if (orderData.store_id) payload.store_id = orderData.store_id
-    if (orderData.reseller_id) payload.reseller_id = orderData.reseller_id
-    if (orderData.quote_date) payload.quote_date = orderData.quote_date
-    if (orderData.order_date) payload.order_date = orderData.order_date
+  const uuidFields = ['client_id', 'company_id', 'store_id', 'reseller_id', 'shipping_partner_id'];
+  uuidFields.forEach(field => {
+    const val = (orderData as any)[field];
+    if (val === '' || val === 'none') {
+      payload[field] = null;
+    } else if (val !== undefined) {
+      payload[field] = val;
+    }
+  });
+
+  if (orderData.quote_date) payload.quote_date = orderData.quote_date
+  if (orderData.order_date) payload.order_date = orderData.order_date
 
   const { data: newOrder, error: orderError } = await supabase
     .from('orders')
@@ -169,12 +175,15 @@ export async function createOrder(orderData: Partial<Order>, items: OrderItem[])
   }
 
   // 3. Integração Financeira Automática
-  if (payload.payment_status === 'Pago') {
+  const amountToRegister = payload.payment_status === 'Pago' ? payload.total_amount : 
+                           (payload.payment_status === 'Pago Parcial' && payload.amount_paid > 0) ? payload.amount_paid : 0;
+
+  if (amountToRegister > 0) {
     await createTransaction({
       type: 'Receita',
       category: 'Vendas',
-      description: `Pedido #${newOrder[0].order_number}`,
-      amount: payload.total_amount,
+      description: `Pedido #${newOrder[0].order_number} (${payload.payment_status})`,
+      amount: amountToRegister,
       due_date: new Date().toISOString().split('T')[0],
       payment_date: new Date().toISOString().split('T')[0],
       status: 'Pago',
@@ -188,6 +197,9 @@ export async function createOrder(orderData: Partial<Order>, items: OrderItem[])
     await processOrderInventoryDeduction(orderId)
   }
 
+  // 5. Histórico do Pedido
+  await addOrderHistory(orderId, payload.status, 'Pedido Criado');
+
   return newOrder[0]
 }
 
@@ -198,6 +210,7 @@ export async function updateOrder(id: string, orderData: Partial<Order>, items: 
     total_amount: orderData.total_amount,
     discount_amount: orderData.discount_amount,
     shipping_cost: orderData.shipping_cost,
+    amount_paid: orderData.amount_paid,
     payment_method: orderData.payment_method,
     payment_status: orderData.payment_status,
     notes: orderData.notes,
@@ -209,16 +222,23 @@ export async function updateOrder(id: string, orderData: Partial<Order>, items: 
     entry_date: orderData.entry_date,
     final_payment_date: orderData.final_payment_date,
     delivery_date: orderData.delivery_date,
-    shipping_partner_id: orderData.shipping_partner_id,
-      reseller_id: orderData.reseller_id,
-      quote_date: orderData.quote_date,
-      order_date: orderData.order_date,
+    quote_date: orderData.quote_date,
+    order_date: orderData.order_date,
     out_of_state_shipping: orderData.out_of_state_shipping,
     payment_notes: orderData.payment_notes
   }
 
-  if (orderData.client_id !== undefined) payload.client_id = orderData.client_id
-  if (orderData.company_id !== undefined) payload.company_id = orderData.company_id
+  const uuidFieldsUpdate = ['client_id', 'company_id', 'store_id', 'reseller_id', 'shipping_partner_id'];
+  uuidFieldsUpdate.forEach(field => {
+    const val = (orderData as any)[field];
+    if (val === '' || val === 'none') {
+      payload[field] = null;
+    } else if (val !== undefined) {
+      payload[field] = val;
+    }
+  });
+
+  const { data: oldOrder } = await supabase.from('orders').select('status').eq('id', id).single();
 
   const { error: orderError } = await supabase
     .from('orders')
@@ -226,6 +246,10 @@ export async function updateOrder(id: string, orderData: Partial<Order>, items: 
     .eq('id', id)
 
   if (orderError) throw orderError
+
+  if (oldOrder && oldOrder.status !== payload.status) {
+    await addOrderHistory(id, payload.status, `Status alterado de ${oldOrder.status} para ${payload.status}`);
+  }
 
   // 2. Atualiza produtos (estratégia mais simples: deleta tudo e recria)
   const { error: delError } = await supabase
@@ -254,27 +278,33 @@ export async function updateOrder(id: string, orderData: Partial<Order>, items: 
   }
 
   // 3. Integração Financeira Automática
-  if (payload.payment_status === 'Pago') {
-    // Verifica se já existe transação
-    const { data: existingTx } = await supabase
-      .from('financial_transactions')
-      .select('id')
-      .eq('order_id', id)
-      .single()
+  const { data: existingTx } = await supabase
+    .from('financial_transactions')
+    .select('amount, status')
+    .eq('order_id', id)
+    .eq('status', 'Pago')
 
-    if (!existingTx) {
-      await createTransaction({
-        type: 'Receita',
-        category: 'Vendas',
-        description: `Pedido Atualizado (Pago)`,
-        amount: payload.total_amount,
-        due_date: new Date().toISOString().split('T')[0],
-        payment_date: new Date().toISOString().split('T')[0],
-        status: 'Pago',
-        payment_method: payload.payment_method || 'Dinheiro',
-        order_id: id
-      })
-    }
+  const totalPaidSoFar = existingTx ? existingTx.reduce((acc, tx) => acc + Number(tx.amount), 0) : 0;
+  
+  let amountToRegister = 0;
+  if (payload.payment_status === 'Pago') {
+    amountToRegister = payload.total_amount - totalPaidSoFar;
+  } else if (payload.payment_status === 'Pago Parcial' && payload.amount_paid > totalPaidSoFar) {
+    amountToRegister = payload.amount_paid - totalPaidSoFar;
+  }
+
+  if (amountToRegister > 0) {
+    await createTransaction({
+      type: 'Receita',
+      category: 'Vendas',
+      description: `Pedido Atualizado (${payload.payment_status})`,
+      amount: amountToRegister,
+      due_date: new Date().toISOString().split('T')[0],
+      payment_date: new Date().toISOString().split('T')[0],
+      status: 'Pago',
+      payment_method: payload.payment_method || 'Dinheiro',
+      order_id: id
+    })
   }
 
   // 4. Integração de Estoque
@@ -431,6 +461,8 @@ export async function processOrderInventoryRefund(orderId: string) {
 }
 
 export async function updateOrderStatus(id: string, status: OrderStatus) {
+  const { data: oldOrder } = await supabase.from('orders').select('status').eq('id', id).single()
+
   const { data, error } = await supabase
     .from('orders')
     .update({ status })
@@ -438,6 +470,10 @@ export async function updateOrderStatus(id: string, status: OrderStatus) {
     .select()
 
   if (error) throw error
+
+  if (oldOrder && oldOrder.status !== status) {
+    await addOrderHistory(id, status, `Status alterado de ${oldOrder.status} para ${status}`);
+  }
 
   // Integração com Estoque
   if (status === 'Aprovado' || status === 'Em Produção' || status === 'Entregue') {
@@ -543,4 +579,36 @@ export async function deleteOutsourcedService(id: string) {
 
   if (error) throw error
   return true
+}
+
+export interface OrderHistory {
+  id: string
+  order_id: string
+  status: string
+  notes?: string | null
+  created_at: string
+}
+
+export async function getOrderHistory(orderId: string) {
+  const { data, error } = await supabase
+    .from('order_history')
+    .select('*')
+    .eq('order_id', orderId)
+    .order('created_at', { ascending: true })
+
+  if (error) {
+    console.error('Error fetching order history:', error)
+    return []
+  }
+  return data as OrderHistory[]
+}
+
+export async function addOrderHistory(orderId: string, status: string, notes?: string) {
+  const { error } = await supabase
+    .from('order_history')
+    .insert([{ order_id: orderId, status, notes }])
+
+  if (error) {
+    console.error('Error adding order history:', error)
+  }
 }
