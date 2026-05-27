@@ -11,6 +11,7 @@ export type Product = {
   price_ecommerce?: number
   is_active?: boolean
   store_id?: string | null
+  variations?: any | null
   created_at?: string
 }
 

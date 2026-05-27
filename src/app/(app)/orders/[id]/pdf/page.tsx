@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, use } from 'react'
-import { getOrder, type Order } from '@/lib/api/orders'
+import { getOrder, getOrderHistory, type Order, type OrderHistory } from '@/lib/api/orders'
 import { getSettings, type Settings } from '@/lib/api/settings'
 import { getStore } from '@/lib/api/stores'
 import { Printer, MapPin, Phone, Building } from 'lucide-react'
@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 
 export default function OrderPdfPage({ params }: { params: Promise<{ id: string }> }) {
   const [order, setOrder] = useState<Order | null>(null)
+  const [history, setHistory] = useState<OrderHistory[]>([])
   const [settings, setSettings] = useState<Settings | null>(null)
   const [storeLogo, setStoreLogo] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -17,12 +18,14 @@ export default function OrderPdfPage({ params }: { params: Promise<{ id: string 
     async function load() {
       try {
         const resolvedParams = await params
-        const [data, settingsData] = await Promise.all([
+        const [data, settingsData, historyData] = await Promise.all([
           getOrder(resolvedParams.id),
-          getSettings()
+          getSettings(),
+          getOrderHistory(resolvedParams.id)
         ])
         setOrder(data)
         setSettings(settingsData)
+        setHistory(historyData)
         
         if (data.store_id) {
           try {
@@ -193,7 +196,18 @@ export default function OrderPdfPage({ params }: { params: Promise<{ id: string 
             {order.notes ? (
               <p className="whitespace-pre-wrap italic mt-2">{order.notes}</p>
             ) : (
-              <p className="mt-2">Este orçamento tem validade de 7 dias úteis. A produção inicia apenas após a confirmação do pagamento e aprovação das artes.</p>
+              <p className="mt-2">Este orçamento tem validade de 3 dias úteis. A produção inicia apenas após a confirmação do pagamento e aprovação das artes.</p>
+            )}
+
+            {history && history.length > 0 && (
+              <div className="mt-4 border-t pt-2 border-gray-200">
+                <h5 className="font-bold text-gray-700 text-xs mb-1">HISTÓRICO DO PEDIDO:</h5>
+                <ul className="text-xs space-y-1">
+                  {history.map((h, i) => (
+                    <li key={i}>- {new Date(h.created_at).toLocaleDateString('pt-BR')} {new Date(h.created_at).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}: <strong>{h.status}</strong> {h.notes && `(${h.notes})`}</li>
+                  ))}
+                </ul>
+              </div>
             )}
           </div>
           

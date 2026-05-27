@@ -21,6 +21,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { FinanceDashboard } from '@/components/finance/finance-dashboard'
+import { BankImportModal } from '@/components/finance/bank-import-modal'
 import { AlertCircle } from 'lucide-react'
 
 export default function FinancePage() {
@@ -162,6 +163,9 @@ export default function FinancePage() {
               Comissões B2B
             </Button>
           </Link>
+
+          {/* Importar Extrato */}
+          <BankImportModal />
 
           {/* Gerenciar Contas */}
           <Dialog open={isAccountModalOpen} onOpenChange={setIsAccountModalOpen}>

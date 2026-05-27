@@ -138,6 +138,40 @@ export async function createCompanyContact(contact: Partial<CompanyContact>) {
     .select()
 
   if (error) throw error
+
+  // Sincronizar com tabela de clientes (PF)
+  if (contact.company_id && contact.name) {
+    try {
+      const { data: company } = await supabase
+        .from('companies')
+        .select('business_name')
+        .eq('id', contact.company_id)
+        .single()
+        
+      const businessName = company?.business_name || 'B2B'
+      
+      const { data: existingClient } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('company_id', contact.company_id)
+        .eq('full_name', contact.name)
+        .limit(1)
+        
+      if (!existingClient || existingClient.length === 0) {
+        await supabase.from('clients').insert([{
+          full_name: contact.name,
+          whatsapp: contact.phone || '',
+          email: contact.email || '',
+          company_id: contact.company_id,
+          client_type: 'Corporativo',
+          notes: `Cliente vinculado à Empresa ${businessName}${contact.role ? ' - Cargo: ' + contact.role : ''}`
+        }])
+      }
+    } catch (e) {
+      console.error('Error syncing contact to client', e)
+    }
+  }
+
   return data[0] as CompanyContact
 }
 
@@ -149,7 +183,45 @@ export async function updateCompanyContact(id: string, contact: Partial<CompanyC
     .select()
 
   if (error) throw error
-  return data[0] as CompanyContact
+
+  // Sincronizar com tabela de clientes (PF) se houver dados
+  const updatedContact = data[0] as CompanyContact
+  if (updatedContact && updatedContact.company_id && updatedContact.name) {
+    try {
+      const { data: existingClient } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('company_id', updatedContact.company_id)
+        .eq('full_name', updatedContact.name)
+        .limit(1)
+        
+      if (existingClient && existingClient.length > 0) {
+        await supabase.from('clients').update({
+          whatsapp: updatedContact.phone || '',
+          email: updatedContact.email || ''
+        }).eq('id', existingClient[0].id)
+      } else {
+        const { data: company } = await supabase
+          .from('companies')
+          .select('business_name')
+          .eq('id', updatedContact.company_id)
+          .single()
+        
+        await supabase.from('clients').insert([{
+          full_name: updatedContact.name,
+          whatsapp: updatedContact.phone || '',
+          email: updatedContact.email || '',
+          company_id: updatedContact.company_id,
+          client_type: 'Corporativo',
+          notes: `Cliente vinculado à Empresa ${company?.business_name || 'B2B'}${updatedContact.role ? ' - Cargo: ' + updatedContact.role : ''}`
+        }])
+      }
+    } catch (e) {
+      console.error('Error syncing updated contact to client', e)
+    }
+  }
+
+  return updatedContact
 }
 
 export async function deleteCompanyContact(id: string) {

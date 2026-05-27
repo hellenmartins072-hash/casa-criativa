@@ -42,8 +42,23 @@ export function ProductForm({ initialData }: ProductFormProps) {
       price_ecommerce: 0,
       is_active: true,
       store_id: null,
+      variations: [],
     }
   )
+
+  const [variations, setVariations] = useState<any[]>(initialData?.variations || [])
+
+  const handleAddVariation = () => {
+    setVariations([...variations, { id: Date.now().toString(), name: '', price_retail: 0, price_resale: 0, price_ecommerce: 0 }])
+  }
+
+  const handleVariationChange = (id: string, field: string, value: string | number) => {
+    setVariations(variations.map(v => v.id === id ? { ...v, [field]: value } : v))
+  }
+
+  const handleRemoveVariation = (id: string) => {
+    setVariations(variations.filter(v => v.id !== id))
+  }
 
   useEffect(() => {
     async function loadData() {
@@ -165,10 +180,12 @@ export function ProductForm({ initialData }: ProductFormProps) {
     try {
       let productId = initialData?.id
       
+      const payloadToSave = { ...formData, variations }
+
       if (productId) {
-        await updateProduct(productId, formData)
+        await updateProduct(productId, payloadToSave)
       } else {
-        const newProduct = await createProduct(formData)
+        const newProduct = await createProduct(payloadToSave)
         productId = newProduct.id
       }
       
@@ -349,6 +366,68 @@ export function ProductForm({ initialData }: ProductFormProps) {
                       />
                     </div>
                   </div>
+                </div>
+
+                {/* Variações */}
+                <div className="space-y-4 md:col-span-2 pt-4 border-t">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h3 className="font-semibold text-lg text-[#5C3D8F]">Variações do Produto</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Adicione tamanhos, cores ou modelos com preços diferentes. (Ex: Tamanho G, Caneca Mágica)
+                      </p>
+                    </div>
+                    <Button type="button" variant="outline" size="sm" onClick={handleAddVariation}>
+                      <Plus className="h-4 w-4 mr-2" /> Nova Variação
+                    </Button>
+                  </div>
+
+                  {variations.length > 0 && (
+                    <div className="space-y-4 mt-4">
+                      {variations.map((v, index) => (
+                        <div key={v.id} className="grid grid-cols-1 md:grid-cols-12 gap-3 p-4 bg-muted/20 border rounded-lg relative">
+                          <div className="md:col-span-3 space-y-1">
+                            <Label className="text-xs">Nome da Variação</Label>
+                            <Input 
+                              placeholder="Ex: Tamanho G"
+                              value={v.name}
+                              onChange={(e) => handleVariationChange(v.id, 'name', e.target.value)}
+                              required
+                            />
+                          </div>
+                          <div className="md:col-span-3 space-y-1">
+                            <Label className="text-xs">Preço Cliente Final (R$)</Label>
+                            <Input 
+                              type="number" step="0.01" min="0"
+                              value={v.price_retail}
+                              onChange={(e) => handleVariationChange(v.id, 'price_retail', parseFloat(e.target.value) || 0)}
+                            />
+                          </div>
+                          <div className="md:col-span-3 space-y-1">
+                            <Label className="text-xs">Preço Revenda (R$)</Label>
+                            <Input 
+                              type="number" step="0.01" min="0"
+                              value={v.price_resale}
+                              onChange={(e) => handleVariationChange(v.id, 'price_resale', parseFloat(e.target.value) || 0)}
+                            />
+                          </div>
+                          <div className="md:col-span-2 space-y-1">
+                            <Label className="text-xs">Plataformas (R$)</Label>
+                            <Input 
+                              type="number" step="0.01" min="0"
+                              value={v.price_ecommerce}
+                              onChange={(e) => handleVariationChange(v.id, 'price_ecommerce', parseFloat(e.target.value) || 0)}
+                            />
+                          </div>
+                          <div className="md:col-span-1 flex items-end justify-center pb-1">
+                            <Button type="button" variant="ghost" size="icon" className="text-red-500" onClick={() => handleRemoveVariation(v.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

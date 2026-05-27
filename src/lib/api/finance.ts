@@ -30,6 +30,8 @@ export type FinancialTransaction = {
   current_installment?: number
   total_installments?: number
   recurrence_period?: string
+  bank_transaction_id?: string | null
+  store_id?: string | null
 }
 
 export async function getTransactions() {
@@ -244,4 +246,59 @@ export async function updateCommissionStatus(id: string, status: 'Pendente' | 'P
     throw error
   }
   return data ? data[0] : null
+}
+
+// --- Bank Statement Import ---
+
+export async function getProcessedBankTransactionIds(ids: string[]) {
+  if (!ids || ids.length === 0) return []
+
+  // Pegar transações já importadas no financeiro
+  const { data: finData, error: finError } = await supabase
+    .from('financial_transactions')
+    .select('bank_transaction_id')
+    .in('bank_transaction_id', ids)
+
+  // Pegar transações ignoradas
+  const { data: ignData, error: ignError } = await supabase
+    .from('ignored_bank_transactions')
+    .select('bank_transaction_id')
+    .in('bank_transaction_id', ids)
+
+  const processedIds = new Set<string>()
+  if (finData) finData.forEach(t => { if (t.bank_transaction_id) processedIds.add(t.bank_transaction_id) })
+  if (ignData) ignData.forEach(t => processedIds.add(t.bank_transaction_id))
+
+  return Array.from(processedIds)
+}
+
+export async function ignoreBankTransactions(ids: string[]) {
+  if (!ids || ids.length === 0) return
+
+  const payload = ids.map(id => ({ bank_transaction_id: id }))
+  
+  const { error } = await supabase
+    .from('ignored_bank_transactions')
+    .insert(payload)
+
+  if (error) {
+    console.error('Error ignoring bank transactions:', error)
+    throw error
+  }
+}
+
+export async function saveReconciledTransactions(transactions: Partial<FinancialTransaction>[]) {
+  if (!transactions || transactions.length === 0) return []
+
+  const { data, error } = await supabase
+    .from('financial_transactions')
+    .insert(transactions)
+    .select()
+
+  if (error) {
+    console.error('Error saving reconciled transactions:', error)
+    throw error
+  }
+  
+  return data
 }

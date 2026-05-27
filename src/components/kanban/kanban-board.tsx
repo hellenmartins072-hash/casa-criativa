@@ -24,8 +24,14 @@ import { CSS } from '@dnd-kit/utilities'
 import { Order, getOrders, updateOrderStatus } from '@/lib/api/orders'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, AlertCircle, Calendar } from 'lucide-react'
+import { Loader2, AlertCircle, Calendar, MoreVertical } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 const COLUMNS = [
   { id: 'Orçamento', title: 'Orçamentos', color: 'bg-gray-100 border-gray-300' },
@@ -36,7 +42,7 @@ const COLUMNS = [
 ]
 
 // --- Componente do Card (Draggable) ---
-function SortableOrderCard({ order }: { order: Order }) {
+function SortableOrderCard({ order, onStatusChange }: { order: Order, onStatusChange?: (id: string, status: string) => void }) {
   const {
     attributes,
     listeners,
@@ -82,6 +88,28 @@ function SortableOrderCard({ order }: { order: Order }) {
             <div className="flex items-center gap-1">
                {isLate && <AlertCircle className="w-4 h-4 text-red-500" />}
                {isWarning && <AlertCircle className="w-4 h-4 text-orange-400" />}
+               
+               {/* Menu de Status (Impede o arrasto ao clicar no menu) */}
+               {onStatusChange && (
+                 <div onPointerDown={(e) => e.stopPropagation()}>
+                   <DropdownMenu>
+                     <DropdownMenuTrigger className="p-1 hover:bg-gray-100 rounded">
+                       <MoreVertical className="w-4 h-4 text-gray-500" />
+                     </DropdownMenuTrigger>
+                     <DropdownMenuContent align="end">
+                       {COLUMNS.map(c => (
+                         <DropdownMenuItem 
+                           key={c.id} 
+                           onClick={() => onStatusChange(order.id, c.id)}
+                           disabled={c.id === order.status}
+                         >
+                           Mover para {c.title}
+                         </DropdownMenuItem>
+                       ))}
+                     </DropdownMenuContent>
+                   </DropdownMenu>
+                 </div>
+               )}
             </div>
           </div>
           <p className="font-semibold text-sm leading-tight text-gray-800 line-clamp-2 mb-2">
@@ -105,7 +133,7 @@ function SortableOrderCard({ order }: { order: Order }) {
 }
 
 // --- Componente da Coluna (Droppable) ---
-function KanbanColumn({ column, orders }: { column: typeof COLUMNS[0], orders: Order[] }) {
+function KanbanColumn({ column, orders, onStatusChange }: { column: typeof COLUMNS[0], orders: Order[], onStatusChange?: (id: string, status: string) => void }) {
   const { setNodeRef } = useSortable({
     id: column.id,
     data: { type: 'Column', column },
@@ -121,7 +149,7 @@ function KanbanColumn({ column, orders }: { column: typeof COLUMNS[0], orders: O
       <div ref={setNodeRef} className="flex-1 p-2 min-h-[500px] overflow-y-auto">
         <SortableContext items={orders.map(o => o.id)} strategy={verticalListSortingStrategy}>
           {orders.map(order => (
-            <SortableOrderCard key={order.id} order={order} />
+            <SortableOrderCard key={order.id} order={order} onStatusChange={onStatusChange} />
           ))}
         </SortableContext>
       </div>
@@ -154,6 +182,17 @@ export function KanbanBoard() {
     }
     loadData()
   }, [])
+
+  const handleStatusChangeClick = async (id: string, newStatus: string) => {
+    // Atualização Otimista
+    setOrders(prev => prev.map(o => o.id === id ? { ...o, status: newStatus } : o))
+    try {
+      await updateOrderStatus(id, newStatus)
+    } catch (err) {
+      console.error('Failed to update status manually', err)
+      alert('Erro ao atualizar o status do pedido.')
+    }
+  }
 
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event
@@ -245,6 +284,7 @@ export function KanbanBoard() {
             key={col.id} 
             column={col} 
             orders={orders.filter(o => o.status === col.id)} 
+            onStatusChange={handleStatusChangeClick}
           />
         ))}
 

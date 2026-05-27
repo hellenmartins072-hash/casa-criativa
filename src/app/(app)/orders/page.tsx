@@ -170,7 +170,10 @@ export default function OrdersPage() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          {new Date(order.created_at).toLocaleDateString('pt-BR')}
+                          {order.status === 'Orçamento' 
+                            ? (order.quote_date ? new Date(order.quote_date).toLocaleDateString('pt-BR') : new Date(order.created_at).toLocaleDateString('pt-BR'))
+                            : (order.order_date ? new Date(order.order_date).toLocaleDateString('pt-BR') : (order.quote_date ? new Date(order.quote_date).toLocaleDateString('pt-BR') : new Date(order.created_at).toLocaleDateString('pt-BR')))
+                          }
                         </TableCell>
                         <TableCell className="font-semibold text-[#5C3D8F]">
                           R$ {Number(order.total_amount || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
@@ -193,6 +196,9 @@ export default function OrdersPage() {
                               </DropdownMenuItem>
                               <DropdownMenuItem className="cursor-pointer" onClick={() => window.open(`/orders/${order.id}/pdf`, '_blank')}>
                                 Gerar PDF
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="cursor-pointer" onClick={() => window.open(`/orders/${order.id}/receipt`, '_blank')}>
+                                Gerar Recibo
                               </DropdownMenuItem>
                               <DropdownMenuItem className="cursor-pointer text-red-600 focus:text-red-700" onClick={() => handleDelete(order.id)}>
                                 Excluir
