@@ -538,9 +538,16 @@ export function OrderForm({ initialData }: OrderFormProps) {
                       <option key={r.id} value={r.id}>{r.full_name}</option>
                     ))}
                   </select>
-                  <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => setIsNewResellerModalOpen(true)} title="Novo Revendedor">
-                    <Plus className="h-4 w-4" />
-                  </Button>
+                  <ResellerFormDialog
+                    onSave={() => {
+                      getResellers().then(res => setResellers(res || []))
+                    }}
+                    triggerButton={
+                      <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" title="Novo Revendedor">
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    }
+                  />
                 </div>
               </div>
             </div>
