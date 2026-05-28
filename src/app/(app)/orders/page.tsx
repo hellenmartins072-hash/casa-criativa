@@ -24,12 +24,14 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export default function OrdersPage() {
   const router = useRouter()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+  const [activeTab, setActiveTab] = useState('todos')
 
   useEffect(() => {
     async function loadOrders() {
@@ -80,6 +82,10 @@ export default function OrdersPage() {
            companyName.toLowerCase().includes(search) ||
            resellerName.toLowerCase().includes(search) ||
            orderStr.includes(search)
+  }).filter(order => {
+    if (activeTab === 'orcamentos') return order.status === 'Orçamento'
+    if (activeTab === 'pedidos') return order.status !== 'Orçamento'
+    return true
   })
 
   const getStatusColor = (status: string) => {
@@ -130,6 +136,15 @@ export default function OrdersPage() {
               />
             </div>
           </div>
+          
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full pt-4">
+            <TabsList>
+              <TabsTrigger value="todos">Todos</TabsTrigger>
+              <TabsTrigger value="orcamentos">Orçamentos</TabsTrigger>
+              <TabsTrigger value="pedidos">Pedidos Aprovados</TabsTrigger>
+            </TabsList>
+          </Tabs>
+
         </CardHeader>
         <CardContent>
           {loading ? (
