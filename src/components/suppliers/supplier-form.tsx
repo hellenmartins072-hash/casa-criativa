@@ -13,9 +13,12 @@ import { Textarea } from '@/components/ui/textarea'
 
 interface SupplierFormProps {
   initialData?: Supplier
+  isModal?: boolean
+  onSuccess?: (supplier: Supplier) => void
+  onCancel?: () => void
 }
 
-export function SupplierForm({ initialData }: SupplierFormProps) {
+export function SupplierForm({ initialData, isModal, onSuccess, onCancel }: SupplierFormProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -120,8 +123,12 @@ export function SupplierForm({ initialData }: SupplierFormProps) {
           await createSupplierProduct({ ...prod, supplier_id: supplierId })
         }
       }
-      router.push('/suppliers')
-      router.refresh()
+      if (isModal && onSuccess) {
+        onSuccess(payloadToSave as Supplier)
+      } else {
+        router.push('/suppliers')
+        router.refresh()
+      }
     } catch (err: any) {
       console.error("ERRO AO SALVAR:", err)
       const errorMsg = err.message || err.details || JSON.stringify(err)
@@ -132,13 +139,15 @@ export function SupplierForm({ initialData }: SupplierFormProps) {
   }
 
   return (
-    <Card className="max-w-3xl mx-auto">
-      <CardHeader>
-        <CardTitle>{initialData ? 'Editar Fornecedor/Parceiro' : 'Novo Fornecedor/Parceiro'}</CardTitle>
-        <CardDescription>
-          Preencha os dados abaixo. Os campos marcados com * são obrigatórios.
-        </CardDescription>
-      </CardHeader>
+    <Card className={isModal ? "border-0 shadow-none w-full" : "max-w-3xl mx-auto"}>
+      {!isModal && (
+        <CardHeader>
+          <CardTitle>{initialData ? 'Editar Fornecedor/Parceiro' : 'Novo Fornecedor/Parceiro'}</CardTitle>
+          <CardDescription>
+            Preencha os dados abaixo. Os campos marcados com * são obrigatórios.
+          </CardDescription>
+        </CardHeader>
+      )}
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-6">
           {error && <div className="text-red-500 text-sm">{error}</div>}
@@ -353,7 +362,7 @@ export function SupplierForm({ initialData }: SupplierFormProps) {
             <Button
               type="button"
               variant="outline"
-              onClick={() => router.push('/suppliers')}
+              onClick={() => isModal && onCancel ? onCancel() : router.push('/suppliers')}
               disabled={loading}
             >
               Cancelar

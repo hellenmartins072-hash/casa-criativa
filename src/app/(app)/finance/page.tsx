@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { Plus, Search, ArrowUpRight, ArrowDownRight, Trash2 } from 'lucide-react'
 import { getTransactions, createTransaction, deleteTransaction, updateTransaction, getBankAccounts, createBankAccount, deleteBankAccount, type FinancialTransaction, type BankAccount } from '@/lib/api/finance'
+import { getSuppliers, type Supplier } from '@/lib/api/suppliers'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -23,6 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { FinanceDashboard } from '@/components/finance/finance-dashboard'
 import { BankImportModal } from '@/components/finance/bank-import-modal'
 import { AlertCircle } from 'lucide-react'
+import { SupplierForm } from '@/components/suppliers/supplier-form'
 
 export default function FinancePage() {
   const [transactions, setTransactions] = useState<FinancialTransaction[]>([])
@@ -49,16 +51,21 @@ export default function FinancePage() {
   const [accounts, setAccounts] = useState<BankAccount[]>([])
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false)
   const [newAccountData, setNewAccountData] = useState({ name: '', type: 'PJ', balance: '0' })
+  
+  const [suppliers, setSuppliers] = useState<Supplier[]>([])
+  const [isNewSupplierModalOpen, setIsNewSupplierModalOpen] = useState(false)
 
   const loadData = async () => {
     setLoading(true)
     try {
-      const [data, accs] = await Promise.all([
+      const [data, accs, supps] = await Promise.all([
         getTransactions(),
-        getBankAccounts()
+        getBankAccounts(),
+        getSuppliers()
       ])
       setTransactions(data || [])
       setAccounts(accs || [])
+      setSuppliers(supps || [])
       
       // Auto-select first account if exists
       if (accs && accs.length > 0 && !formData.bank_account_id) {
@@ -244,8 +251,28 @@ export default function FinancePage() {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Categoria</Label>
-                    <Input value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} />
+                    <Label>Categoria (Fornecedor/Destino)</Label>
+                    <div className="flex gap-2">
+                      <select 
+                        value={formData.category} 
+                        onChange={e => setFormData({...formData, category: e.target.value})}
+                        className="flex h-9 w-full rounded-md border border-input bg-white px-3 py-1 shadow-sm"
+                      >
+                        <option value="">-- Selecione --</option>
+                        {suppliers.map(sup => (
+                          <option key={sup.id} value={sup.name}>{sup.name}</option>
+                        ))}
+                      </select>
+                      <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => setIsNewSupplierModalOpen(true)} title="Novo Fornecedor">
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <Input 
+                      placeholder="Ou digite outra categoria..."
+                      value={formData.category} 
+                      onChange={e => setFormData({...formData, category: e.target.value})} 
+                      className="mt-2 h-8 text-sm"
+                    />
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -483,6 +510,24 @@ export default function FinancePage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Modal de Novo Fornecedor */}
+      <Dialog open={isNewSupplierModalOpen} onOpenChange={setIsNewSupplierModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Novo Fornecedor</DialogTitle>
+          </DialogHeader>
+          <SupplierForm 
+            isModal 
+            onSuccess={(supplier) => {
+              setSuppliers(prev => [supplier, ...prev])
+              setFormData(prev => ({ ...prev, category: supplier.name }))
+              setIsNewSupplierModalOpen(false)
+            }} 
+            onCancel={() => setIsNewSupplierModalOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
