@@ -32,9 +32,12 @@ export async function getResellers() {
 }
 
 export async function createReseller(reseller: Partial<Reseller>) {
+  const payload = { ...reseller }
+  if (payload.birth_date === '') payload.birth_date = null
+
   const { data, error } = await supabase
     .from('resellers')
-    .insert([reseller])
+    .insert([payload])
     .select()
 
   if (error) {
@@ -45,9 +48,12 @@ export async function createReseller(reseller: Partial<Reseller>) {
 }
 
 export async function updateReseller(id: string, reseller: Partial<Reseller>) {
+  const payload = { ...reseller }
+  if (payload.birth_date === '') payload.birth_date = null
+
   const { data, error } = await supabase
     .from('resellers')
-    .update(reseller)
+    .update(payload)
     .eq('id', id)
     .select()
 

@@ -79,9 +79,12 @@ export async function getCompany(id: string) {
 }
 
 export async function createCompany(company: Partial<Company>) {
+  const payload = { ...company }
+  if (payload.birth_date === '') payload.birth_date = null
+
   const { data, error } = await supabase
     .from('companies')
-    .insert([company])
+    .insert([payload])
     .select()
 
   if (error) {
@@ -92,9 +95,12 @@ export async function createCompany(company: Partial<Company>) {
 }
 
 export async function updateCompany(id: string, company: Partial<Company>) {
+  const payload = { ...company }
+  if (payload.birth_date === '') payload.birth_date = null
+
   const { data, error } = await supabase
     .from('companies')
-    .update(company)
+    .update(payload)
     .eq('id', id)
     .select()
 

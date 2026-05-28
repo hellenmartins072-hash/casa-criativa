@@ -137,8 +137,10 @@ export async function createOrder(orderData: Partial<Order>, items: OrderItem[])
     }
   });
 
-  if (orderData.quote_date) payload.quote_date = orderData.quote_date
-  if (orderData.order_date) payload.order_date = orderData.order_date
+  const dateFields = ['deadline', 'entry_date', 'final_payment_date', 'delivery_date', 'quote_date', 'order_date'];
+  dateFields.forEach(field => {
+    if (payload[field] === '') payload[field] = null;
+  });
 
   const { data: newOrder, error: orderError } = await supabase
     .from('orders')
@@ -236,6 +238,11 @@ export async function updateOrder(id: string, orderData: Partial<Order>, items: 
     } else if (val !== undefined) {
       payload[field] = val;
     }
+  });
+  
+  const dateFieldsUpdate = ['deadline', 'entry_date', 'final_payment_date', 'delivery_date', 'quote_date', 'order_date'];
+  dateFieldsUpdate.forEach(field => {
+    if (payload[field] === '') payload[field] = null;
   });
 
   const { data: oldOrder } = await supabase.from('orders').select('status').eq('id', id).single();

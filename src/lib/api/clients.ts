@@ -57,9 +57,12 @@ export async function getClient(id: string) {
 }
 
 export async function createClient(client: Partial<Client>) {
+  const payload = { ...client }
+  if (payload.birth_date === '') payload.birth_date = null
+
   const { data, error } = await supabase
     .from('clients')
-    .insert([client])
+    .insert([payload])
     .select()
 
   if (error) {
@@ -70,9 +73,12 @@ export async function createClient(client: Partial<Client>) {
 }
 
 export async function updateClient(id: string, client: Partial<Client>) {
+  const payload = { ...client }
+  if (payload.birth_date === '') payload.birth_date = null
+
   const { data, error } = await supabase
     .from('clients')
-    .update(client)
+    .update(payload)
     .eq('id', id)
     .select()
 
