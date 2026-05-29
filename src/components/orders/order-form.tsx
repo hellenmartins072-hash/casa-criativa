@@ -667,6 +667,21 @@ export function OrderForm({ initialData }: OrderFormProps) {
                     className="bg-gray-50 font-bold text-red-600"
                   />
                 </div>
+                <div className="space-y-2 md:col-span-2 pt-2 pb-2">
+                  <div className="flex items-center space-x-2 bg-muted/20 p-2 rounded-md border border-orange-200 bg-orange-50/50">
+                    <input 
+                      type="checkbox" 
+                      id="ignore_auto_finance"
+                      name="ignore_auto_finance"
+                      checked={formData.ignore_auto_finance || false}
+                      onChange={(e) => setFormData({...formData, ignore_auto_finance: e.target.checked})}
+                      className="rounded border-gray-300 w-4 h-4 text-orange-600 focus:ring-orange-500"
+                    />
+                    <Label htmlFor="ignore_auto_finance" className="text-sm font-medium leading-none cursor-pointer text-orange-800">
+                      Recebimento importado via Extrato (Não lançar automaticamente no fluxo de caixa)
+                    </Label>
+                  </div>
+                </div>
                 <div className="space-y-2">
                   <Label>Data Entrada (Ex: 50%)</Label>
                   <Input 

@@ -41,6 +41,7 @@ export type Order = {
   shipping_partner_id?: string | null
   out_of_state_shipping?: boolean
   payment_notes?: string | null
+  ignore_auto_finance?: boolean
   
   // Novos campos Lote 3
   reseller_id?: string | null
@@ -124,7 +125,8 @@ export async function createOrder(orderData: Partial<Order>, items: OrderItem[])
     quote_date: orderData.quote_date,
     order_date: orderData.order_date || null,
     out_of_state_shipping: orderData.out_of_state_shipping || false,
-    payment_notes: orderData.payment_notes || null
+    payment_notes: orderData.payment_notes || null,
+    ignore_auto_finance: orderData.ignore_auto_finance || false
   }
 
   const uuidFields = ['client_id', 'company_id', 'store_id', 'reseller_id', 'shipping_partner_id'];
@@ -177,21 +179,23 @@ export async function createOrder(orderData: Partial<Order>, items: OrderItem[])
   }
 
   // 3. Integração Financeira Automática
-  const amountToRegister = payload.payment_status === 'Pago' ? payload.total_amount : 
-                           (payload.payment_status === 'Pago Parcial' && payload.amount_paid > 0) ? payload.amount_paid : 0;
+  if (!payload.ignore_auto_finance) {
+    const amountToRegister = payload.payment_status === 'Pago' ? payload.total_amount : 
+                             (payload.payment_status === 'Pago Parcial' && payload.amount_paid > 0) ? payload.amount_paid : 0;
 
-  if (amountToRegister > 0) {
-    await createTransaction({
-      type: 'Receita',
-      category: 'Vendas',
-      description: `Pedido #${newOrder[0].order_number} (${payload.payment_status})`,
-      amount: amountToRegister,
-      due_date: new Date().toISOString().split('T')[0],
-      payment_date: new Date().toISOString().split('T')[0],
-      status: 'Pago',
-      payment_method: payload.payment_method || 'Dinheiro',
-      order_id: orderId
-    })
+    if (amountToRegister > 0) {
+      await createTransaction({
+        type: 'Receita',
+        category: 'Vendas',
+        description: `Pedido #${newOrder[0].order_number} (${payload.payment_status})`,
+        amount: amountToRegister,
+        due_date: new Date().toISOString().split('T')[0],
+        payment_date: new Date().toISOString().split('T')[0],
+        status: 'Pago',
+        payment_method: payload.payment_method || 'Dinheiro',
+        order_id: orderId
+      })
+    }
   }
 
   // 4. Integração de Estoque Automática (se já nascer Aprovado)
@@ -227,7 +231,8 @@ export async function updateOrder(id: string, orderData: Partial<Order>, items: 
     quote_date: orderData.quote_date,
     order_date: orderData.order_date,
     out_of_state_shipping: orderData.out_of_state_shipping,
-    payment_notes: orderData.payment_notes
+    payment_notes: orderData.payment_notes,
+    ignore_auto_finance: orderData.ignore_auto_finance
   }
 
   const uuidFieldsUpdate = ['client_id', 'company_id', 'store_id', 'reseller_id', 'shipping_partner_id'];
