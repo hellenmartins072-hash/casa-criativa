@@ -47,11 +47,11 @@ export default function FinancePage() {
     total_installments: 1,
     recurrence_period: 'Mensal'
   })
-  
+
   const [accounts, setAccounts] = useState<BankAccount[]>([])
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false)
   const [newAccountData, setNewAccountData] = useState({ name: '', type: 'PJ', balance: '0' })
-  
+
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [isNewSupplierModalOpen, setIsNewSupplierModalOpen] = useState(false)
 
@@ -66,7 +66,7 @@ export default function FinancePage() {
       setTransactions(data || [])
       setAccounts(accs || [])
       setSuppliers(supps || [])
-      
+
       // Auto-select first account if exists
       if (accs && accs.length > 0 && !formData.bank_account_id) {
         setFormData(prev => ({ ...prev, bank_account_id: accs[0].id }))
@@ -82,7 +82,7 @@ export default function FinancePage() {
     loadData()
   }, [])
 
-  const filteredTransactions = transactions.filter(t => 
+  const filteredTransactions = transactions.filter(t =>
     t.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
     t.category?.toLowerCase().includes(searchQuery.toLowerCase())
   )
@@ -91,29 +91,29 @@ export default function FinancePage() {
 
   // --- FLUXO REAL ---
   const [fluxoAccountId, setFluxoAccountId] = useState<string>('all')
-  
+
   const calculateFluxoReal = () => {
     let flowTxs = transactions.filter(t => t.status === 'Pago')
     if (fluxoAccountId !== 'all') {
       flowTxs = flowTxs.filter(t => t.bank_account_id === fluxoAccountId)
     }
     // Sort chronologically
-    flowTxs = flowTxs.sort((a,b) => new Date(a.payment_date || a.due_date).getTime() - new Date(b.payment_date || b.due_date).getTime())
+    flowTxs = flowTxs.sort((a, b) => new Date(a.payment_date || a.due_date).getTime() - new Date(b.payment_date || b.due_date).getTime())
 
     let runningBalance = 0;
     if (fluxoAccountId !== 'all') {
-       const acc = accounts.find(a => a.id === fluxoAccountId);
-       if (acc && acc.balance) runningBalance = Number(acc.balance);
+      const acc = accounts.find(a => a.id === fluxoAccountId);
+      if (acc && acc.balance) runningBalance = Number(acc.balance);
     }
 
     return flowTxs.map(t => {
-       if (t.type === 'Receita') runningBalance += Number(t.amount);
-       else runningBalance -= Number(t.amount);
-       
-       return {
-         ...t,
-         runningBalance
-       }
+      if (t.type === 'Receita') runningBalance += Number(t.amount);
+      else runningBalance -= Number(t.amount);
+
+      return {
+        ...t,
+        runningBalance
+      }
     })
   }
   const fluxoReal = calculateFluxoReal()
@@ -215,7 +215,7 @@ export default function FinancePage() {
                 <DialogTitle>Contas Bancárias (PF/PJ)</DialogTitle>
                 <DialogDescription>Gerencie de onde o dinheiro entra e sai.</DialogDescription>
               </DialogHeader>
-              
+
               <div className="space-y-4 pt-2">
                 <div className="space-y-2">
                   {accounts.map(acc => (
@@ -237,12 +237,12 @@ export default function FinancePage() {
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
                       <Label className="text-xs">Nome da Conta</Label>
-                      <Input required value={newAccountData.name} onChange={e => setNewAccountData({...newAccountData, name: e.target.value})} placeholder="Ex: Inter PJ" />
+                      <Input required value={newAccountData.name} onChange={e => setNewAccountData({ ...newAccountData, name: e.target.value })} placeholder="Ex: Inter PJ" />
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs">Tipo</Label>
-                      <select 
-                        value={newAccountData.type} onChange={e => setNewAccountData({...newAccountData, type: e.target.value})}
+                      <select
+                        value={newAccountData.type} onChange={e => setNewAccountData({ ...newAccountData, type: e.target.value })}
                         className="flex h-9 w-full rounded-md border border-input bg-white px-3 py-1 shadow-sm text-sm"
                       >
                         <option value="PJ">Pessoa Jurídica (PJ)</option>
@@ -271,8 +271,8 @@ export default function FinancePage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Tipo</Label>
-                    <select 
-                      value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})}
+                    <select
+                      value={formData.type} onChange={e => setFormData({ ...formData, type: e.target.value })}
                       className="flex h-9 w-full rounded-md border border-input bg-white px-3 py-1 shadow-sm"
                     >
                       <option value="Despesa">Saída (Despesa)</option>
@@ -282,9 +282,9 @@ export default function FinancePage() {
                   <div className="space-y-2">
                     <Label>Categoria (Fornecedor/Destino)</Label>
                     <div className="flex gap-2">
-                      <select 
-                        value={formData.category} 
-                        onChange={e => setFormData({...formData, category: e.target.value})}
+                      <select
+                        value={formData.category}
+                        onChange={e => setFormData({ ...formData, category: e.target.value })}
                         className="flex h-9 w-full rounded-md border border-input bg-white px-3 py-1 shadow-sm"
                       >
                         <option value="">-- Selecione --</option>
@@ -296,33 +296,33 @@ export default function FinancePage() {
                         <Plus className="h-4 w-4" />
                       </Button>
                     </div>
-                    <Input 
+                    <Input
                       placeholder="Ou digite outra categoria..."
-                      value={formData.category} 
-                      onChange={e => setFormData({...formData, category: e.target.value})} 
+                      value={formData.category}
+                      onChange={e => setFormData({ ...formData, category: e.target.value })}
                       className="mt-2 h-8 text-sm"
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label>Descrição</Label>
-                  <Input required value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="Ex: Compra de Resina" />
+                  <Input required value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} placeholder="Ex: Compra de Resina" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Valor (R$)</Label>
-                    <Input required type="number" step="0.01" value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} placeholder="0.00" />
+                    <Input required type="number" step="0.01" value={formData.amount} onChange={e => setFormData({ ...formData, amount: e.target.value })} placeholder="0.00" />
                   </div>
                   <div className="space-y-2">
                     <Label>Vencimento</Label>
-                    <Input required type="date" value={formData.due_date} onChange={e => setFormData({...formData, due_date: e.target.value})} />
+                    <Input required type="date" value={formData.due_date} onChange={e => setFormData({ ...formData, due_date: e.target.value })} />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Status</Label>
-                    <select 
-                      value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})}
+                    <select
+                      value={formData.status} onChange={e => setFormData({ ...formData, status: e.target.value })}
                       className="flex h-9 w-full rounded-md border border-input bg-white px-3 py-1 shadow-sm"
                     >
                       <option value="Pago">Pago</option>
@@ -331,8 +331,8 @@ export default function FinancePage() {
                   </div>
                   <div className="space-y-2">
                     <Label>Pagamento</Label>
-                    <select 
-                      value={formData.payment_method} onChange={e => setFormData({...formData, payment_method: e.target.value})}
+                    <select
+                      value={formData.payment_method} onChange={e => setFormData({ ...formData, payment_method: e.target.value })}
                       className="flex h-9 w-full rounded-md border border-input bg-white px-3 py-1 shadow-sm"
                     >
                       <option value="PIX">PIX</option>
@@ -344,8 +344,8 @@ export default function FinancePage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Conta Bancária</Label>
-                  <select 
-                    value={formData.bank_account_id} onChange={e => setFormData({...formData, bank_account_id: e.target.value})}
+                  <select
+                    value={formData.bank_account_id} onChange={e => setFormData({ ...formData, bank_account_id: e.target.value })}
                     className="flex h-9 w-full rounded-md border border-input bg-white px-3 py-1 shadow-sm"
                   >
                     <option value="">Sem conta especificada</option>
@@ -448,9 +448,9 @@ export default function FinancePage() {
                               {(tx as any).bank_accounts?.name || '-'}
                             </TableCell>
                             <TableCell>
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
+                              <Button
+                                variant="ghost"
+                                size="sm"
                                 onClick={() => toggleStatus(tx)}
                                 className={`h-6 px-2 text-xs font-semibold rounded-full ${tx.status === 'Pago' ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'}`}
                               >
@@ -500,38 +500,39 @@ export default function FinancePage() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      contasAPagar.sort((a,b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime()).map(t => {
+                      contasAPagar.sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime()).map(t => {
                         const isOverdue = new Date(t.due_date) < new Date() && t.status === 'Pendente'
                         return (
-                        <TableRow key={t.id} className={isOverdue ? "bg-red-50/50" : ""}>
-                          <TableCell className="whitespace-nowrap flex items-center gap-2">
-                            {isOverdue && <AlertCircle className="w-4 h-4 text-red-500" />}
-                            <span className={isOverdue ? "text-red-600 font-bold" : ""}>
-                              {new Date(t.due_date).toLocaleDateString('pt-BR')}
-                            </span>
-                          </TableCell>
-                          <TableCell className="font-medium">{t.description}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{t.category}</Badge>
-                          </TableCell>
-                          <TableCell className="text-right font-bold text-red-600">
-                            R$ {Number(t.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Badge variant="secondary" className="bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200">
-                              Pendente
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right space-x-2">
-                            <Button variant="outline" size="sm" onClick={() => toggleStatus(t)}>
-                              Dar Baixa
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleDelete(t.id)}>
-                              <Trash2 className="w-4 h-4 text-red-400" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      )})
+                          <TableRow key={t.id} className={isOverdue ? "bg-red-50/50" : ""}>
+                            <TableCell className="whitespace-nowrap flex items-center gap-2">
+                              {isOverdue && <AlertCircle className="w-4 h-4 text-red-500" />}
+                              <span className={isOverdue ? "text-red-600 font-bold" : ""}>
+                                {new Date(t.due_date).toLocaleDateString('pt-BR')}
+                              </span>
+                            </TableCell>
+                            <TableCell className="font-medium">{t.description}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{t.category}</Badge>
+                            </TableCell>
+                            <TableCell className="text-right font-bold text-red-600">
+                              R$ {Number(t.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Badge variant="secondary" className="bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200">
+                                Pendente
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right space-x-2">
+                              <Button variant="outline" size="sm" onClick={() => toggleStatus(t)}>
+                                Dar Baixa
+                              </Button>
+                              <Button variant="ghost" size="icon" onClick={() => handleDelete(t.id)}>
+                                <Trash2 className="w-4 h-4 text-red-400" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })
                     )}
                   </TableBody>
                 </Table>
@@ -548,8 +549,8 @@ export default function FinancePage() {
               <div className="flex items-center pt-4">
                 <div className="w-full max-w-sm">
                   <Label className="mb-2 block text-sm">Filtrar por Conta Bancária</Label>
-                  <select 
-                    value={fluxoAccountId} 
+                  <select
+                    value={fluxoAccountId}
                     onChange={e => setFluxoAccountId(e.target.value)}
                     className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm shadow-sm"
                   >
@@ -620,13 +621,13 @@ export default function FinancePage() {
           <DialogHeader>
             <DialogTitle>Novo Fornecedor</DialogTitle>
           </DialogHeader>
-          <SupplierForm 
-            isModal 
+          <SupplierForm
+            isModal
             onSuccess={(supplier) => {
               setSuppliers(prev => [supplier, ...prev])
               setFormData(prev => ({ ...prev, category: supplier.name }))
               setIsNewSupplierModalOpen(false)
-            }} 
+            }}
             onCancel={() => setIsNewSupplierModalOpen(false)}
           />
         </DialogContent>
