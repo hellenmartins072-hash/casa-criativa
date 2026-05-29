@@ -8,11 +8,14 @@ import { UploadCloud, Check, X, FileText, Loader2, AlertCircle } from 'lucide-re
 import { parseBankFile, ParsedBankTransaction } from '@/lib/utils/bank-parser'
 import { getProcessedBankTransactionIds, ignoreBankTransactions, saveReconciledTransactions, FinancialTransaction } from '@/lib/api/finance'
 import { getCompanies, Company } from '@/lib/api/companies'
+import { getClients, Client } from '@/lib/api/clients'
+import { getSuppliers, Supplier } from '@/lib/api/suppliers'
 
 type ReconciledItem = ParsedBankTransaction & {
   action: 'approve' | 'ignore' | 'pending'
   category: string
-  store_id: string | null
+  link_id: string | null
+  link_type: 'company' | 'supplier' | 'client' | null
 }
 
 const CATEGORIES = [
@@ -35,10 +38,14 @@ export function BankImportModal() {
   
   const [items, setItems] = useState<ReconciledItem[]>([])
   const [companies, setCompanies] = useState<Company[]>([])
+  const [clients, setClients] = useState<Client[]>([])
+  const [suppliers, setSuppliers] = useState<Supplier[]>([])
 
   useEffect(() => {
-    if (isOpen && companies.length === 0) {
-      getCompanies().then(setCompanies).catch(console.error)
+    if (isOpen) {
+      if (companies.length === 0) getCompanies().then(setCompanies).catch(console.error)
+      if (clients.length === 0) getClients().then(setClients).catch(console.error)
+      if (suppliers.length === 0) getSuppliers().then(setSuppliers).catch(console.error)
     }
   }, [isOpen])
 
@@ -62,7 +69,8 @@ export function BankImportModal() {
           ...p,
           action: 'pending',
           category: p.type === 'Receita' ? 'Venda' : 'Despesa Fixa',
-          store_id: null
+          link_id: null,
+          link_type: null
         }))
 
       setItems(newItems)
@@ -110,7 +118,9 @@ export function BankImportModal() {
           status: 'Pago',
           payment_method: 'Transferência', // Default para banco
           bank_transaction_id: item.id,
-          store_id: item.store_id || null,
+          store_id: item.link_type === 'company' ? item.link_id : null,
+          supplier_id: item.link_type === 'supplier' ? item.link_id : null,
+          client_id: item.link_type === 'client' ? item.link_id : null,
           notes: 'Importado via Extrato Bancário'
         }))
 
@@ -182,7 +192,7 @@ export function BankImportModal() {
                       <th className="p-2 text-left">Histórico (Banco)</th>
                       <th className="p-2 text-right">Valor</th>
                       <th className="p-2 text-left">Categoria</th>
-                      <th className="p-2 text-left">Vincular Loja</th>
+                      <th className="p-2 text-left">Vínculo (Opcional)</th>
                       <th className="p-2 text-center">Ação</th>
                     </tr>
                   </thead>
@@ -214,12 +224,30 @@ export function BankImportModal() {
                         <td className="p-2">
                           <select 
                             className="border rounded p-1 w-full bg-white/80 text-xs"
-                            value={item.store_id || ''}
-                            onChange={(e) => updateItem(item.id, 'store_id', e.target.value)}
+                            value={item.link_id ? `${item.link_type}_${item.link_id}` : ''}
+                            onChange={(e) => {
+                              const val = e.target.value
+                              if (!val) {
+                                updateItem(item.id, 'link_id', null)
+                                updateItem(item.id, 'link_type', null)
+                              } else {
+                                const [type, id] = val.split('_')
+                                updateItem(item.id, 'link_id', id)
+                                updateItem(item.id, 'link_type', type)
+                              }
+                            }}
                             disabled={item.action === 'ignore'}
                           >
-                            <option value="">-- Nenhuma --</option>
-                            {companies.map(c => <option key={c.id} value={c.id}>{c.business_name}</option>)}
+                            <option value="">-- Nenhum --</option>
+                            <optgroup label="Clientes">
+                              {clients.map(c => <option key={`client_${c.id}`} value={`client_${c.id}`}>{c.full_name}</option>)}
+                            </optgroup>
+                            <optgroup label="Fornecedores">
+                              {suppliers.map(s => <option key={`supplier_${s.id}`} value={`supplier_${s.id}`}>{s.name}</option>)}
+                            </optgroup>
+                            <optgroup label="Empresas B2B">
+                              {companies.map(c => <option key={`company_${c.id}`} value={`company_${c.id}`}>{c.business_name}</option>)}
+                            </optgroup>
                           </select>
                         </td>
                         <td className="p-2">

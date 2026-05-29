@@ -32,6 +32,7 @@ export type FinancialTransaction = {
   recurrence_period?: string
   bank_transaction_id?: string | null
   store_id?: string | null
+  client_id?: string | null
 }
 
 export async function getTransactions() {
