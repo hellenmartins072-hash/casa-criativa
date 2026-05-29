@@ -21,6 +21,9 @@ const CATEGORIES = [
   'Fornecedor', 
   'Despesa Fixa', 
   'Pessoal', 
+  'ESCOLA / PESSOAL',
+  'Taxa de Entrega',
+  'Investimento Empresa',
   'Imposto', 
   'Outro'
 ]
