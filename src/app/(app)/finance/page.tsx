@@ -89,6 +89,35 @@ export default function FinancePage() {
 
   const contasAPagar = transactions.filter(t => t.type === 'Despesa' && t.status === 'Pendente')
 
+  // --- FLUXO REAL ---
+  const [fluxoAccountId, setFluxoAccountId] = useState<string>('all')
+  
+  const calculateFluxoReal = () => {
+    let flowTxs = transactions.filter(t => t.status === 'Pago')
+    if (fluxoAccountId !== 'all') {
+      flowTxs = flowTxs.filter(t => t.bank_account_id === fluxoAccountId)
+    }
+    // Sort chronologically
+    flowTxs = flowTxs.sort((a,b) => new Date(a.payment_date || a.due_date).getTime() - new Date(b.payment_date || b.due_date).getTime())
+
+    let runningBalance = 0;
+    if (fluxoAccountId !== 'all') {
+       const acc = accounts.find(a => a.id === fluxoAccountId);
+       if (acc && acc.balance) runningBalance = Number(acc.balance);
+    }
+
+    return flowTxs.map(t => {
+       if (t.type === 'Receita') runningBalance += Number(t.amount);
+       else runningBalance -= Number(t.amount);
+       
+       return {
+         ...t,
+         runningBalance
+       }
+    })
+  }
+  const fluxoReal = calculateFluxoReal()
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
@@ -336,6 +365,7 @@ export default function FinancePage() {
         <TabsList className="mb-4">
           <TabsTrigger value="resumo">Resumo Financeiro</TabsTrigger>
           <TabsTrigger value="extrato">Extrato Geral</TabsTrigger>
+          <TabsTrigger value="fluxo">Fluxo Real (Conciliação)</TabsTrigger>
           <TabsTrigger value="contas-a-pagar" className="relative">
             Contas a Pagar
             {contasAPagar.length > 0 && (
@@ -502,6 +532,79 @@ export default function FinancePage() {
                           </TableCell>
                         </TableRow>
                       )})
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="fluxo">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle>Fluxo Real (Conciliação)</CardTitle>
+              <CardDescription>Acompanhe o saldo cronológico das suas contas (Apenas transações pagas).</CardDescription>
+              <div className="flex items-center pt-4">
+                <div className="w-full max-w-sm">
+                  <Label className="mb-2 block text-sm">Filtrar por Conta Bancária</Label>
+                  <select 
+                    value={fluxoAccountId} 
+                    onChange={e => setFluxoAccountId(e.target.value)}
+                    className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm shadow-sm"
+                  >
+                    <option value="all">Todas as Contas (Saldo Global)</option>
+                    {accounts.map(acc => (
+                      <option key={acc.id} value={acc.id}>{acc.name} ({acc.type})</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-md border overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-gray-50">
+                      <TableHead>Data</TableHead>
+                      <TableHead>Histórico</TableHead>
+                      <TableHead className="text-right text-green-700">Entrada (+)</TableHead>
+                      <TableHead className="text-right text-red-700">Saída (-)</TableHead>
+                      <TableHead className="text-right font-bold">Saldo (=)</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {fluxoReal.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                          Nenhuma transação paga encontrada para esta conta.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      fluxoReal.map((tx) => (
+                        <TableRow key={`fluxo-${tx.id}`}>
+                          <TableCell className="whitespace-nowrap font-medium text-gray-600">
+                            {new Date(tx.payment_date || tx.due_date).toLocaleDateString('pt-BR')}
+                          </TableCell>
+                          <TableCell className="max-w-[250px] truncate" title={tx.description}>
+                            {tx.description}
+                            {tx.bank_account_id && fluxoAccountId === 'all' && (
+                              <span className="ml-2 text-[10px] bg-gray-100 px-2 py-0.5 rounded text-gray-500">
+                                {accounts.find(a => a.id === tx.bank_account_id)?.name}
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right text-green-600 font-medium">
+                            {tx.type === 'Receita' ? `R$ ${Number(tx.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '-'}
+                          </TableCell>
+                          <TableCell className="text-right text-red-600 font-medium">
+                            {tx.type === 'Despesa' ? `R$ ${Number(tx.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '-'}
+                          </TableCell>
+                          <TableCell className={`text-right font-bold ${tx.runningBalance >= 0 ? 'text-blue-700' : 'text-red-700'}`}>
+                            R$ {tx.runningBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </TableCell>
+                        </TableRow>
+                      ))
                     )}
                   </TableBody>
                 </Table>
