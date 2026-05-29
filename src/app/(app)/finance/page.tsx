@@ -16,6 +16,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  TableFooter,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog'
@@ -608,6 +609,22 @@ export default function FinancePage() {
                       ))
                     )}
                   </TableBody>
+                  <TableFooter className="bg-gray-100">
+                    <TableRow>
+                      <TableCell colSpan={2} className="text-right font-bold text-gray-700 uppercase tracking-wider">
+                        Totais no Período:
+                      </TableCell>
+                      <TableCell className="text-right text-green-700 font-bold">
+                        R$ {fluxoTotals.entradas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </TableCell>
+                      <TableCell className="text-right text-red-700 font-bold">
+                        R$ {fluxoTotals.saidas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </TableCell>
+                      <TableCell className={`text-right font-bold ${fluxoSaldoLiquido >= 0 ? 'text-blue-700' : 'text-red-700'}`}>
+                        R$ {fluxoSaldoLiquido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </TableCell>
+                    </TableRow>
+                  </TableFooter>
                 </Table>
               </div>
             </CardContent>
