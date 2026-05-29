@@ -132,7 +132,7 @@ export function BankImportModal() {
           <UploadCloud className="h-4 w-4 mr-2" /> Importar Extrato
         </Button>
       </DialogTrigger>
-      <DialogContent className="w-[95vw] max-w-6xl max-h-[95vh] flex flex-col overflow-hidden p-4 md:p-6">
+      <DialogContent className="w-[95vw] sm:max-w-[95vw] md:max-w-6xl max-h-[95vh] flex flex-col overflow-hidden p-4 md:p-6">
         <DialogHeader>
           <DialogTitle className="text-xl text-[#5C3D8F]">Importar Extrato Bancário</DialogTitle>
         </DialogHeader>
