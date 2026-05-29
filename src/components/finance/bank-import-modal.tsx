@@ -132,7 +132,7 @@ export function BankImportModal() {
           <UploadCloud className="h-4 w-4 mr-2" /> Importar Extrato
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
+      <DialogContent className="w-[95vw] max-w-6xl max-h-[95vh] flex flex-col overflow-hidden p-4 md:p-6">
         <DialogHeader>
           <DialogTitle className="text-xl text-[#5C3D8F]">Importar Extrato Bancário</DialogTitle>
         </DialogHeader>
@@ -171,8 +171,8 @@ export function BankImportModal() {
                 </div>
               </div>
 
-              <div className="border rounded-md overflow-hidden">
-                <table className="w-full text-sm">
+              <div className="border rounded-md overflow-x-auto">
+                <table className="w-full text-sm min-w-[800px]">
                   <thead className="bg-gray-100 text-gray-600">
                     <tr>
                       <th className="p-2 text-left">Data</th>
