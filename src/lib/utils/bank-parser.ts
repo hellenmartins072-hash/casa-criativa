@@ -77,6 +77,7 @@ function parseOFX(text: string): ParsedBankTransaction[] {
   // Quick and dirty OFX parser with Regex
   const stmtTrnRegex = /<STMTTRN>([\s\S]*?)<\/STMTTRN>/g
   let match
+  const seenIds = new Map<string, number>()
 
   while ((match = stmtTrnRegex.exec(text)) !== null) {
     const block = match[1]
@@ -97,6 +98,14 @@ function parseOFX(text: string): ParsedBankTransaction[] {
       
       const description = memoMatch ? memoMatch[1].trim() : 'Transação'
       let id = fitidMatch ? fitidMatch[1].trim() : generateId(date, amount, description)
+
+      if (seenIds.has(id)) {
+        const count = seenIds.get(id)! + 1
+        seenIds.set(id, count)
+        id = `${id}_dup${count}`
+      } else {
+        seenIds.set(id, 0)
+      }
 
       transactions.push({
         id,
@@ -134,6 +143,7 @@ function parseCSV(text: string): Promise<ParsedBankTransaction[]> {
       skipEmptyLines: true,
       complete: (results) => {
         const transactions: ParsedBankTransaction[] = []
+        const seenIds = new Map<string, number>()
         
         results.data.forEach((row: any) => {
           // Normalize row keys to lowercase
@@ -182,7 +192,15 @@ function parseCSV(text: string): Promise<ParsedBankTransaction[]> {
             
             // Try to find an ID like 'Docto.' or generate one
             const docto = normalizedRow['docto.'] || normalizedRow['documento'] || normalizedRow['id']
-            const id = docto ? `bradesco_${docto.trim()}_${date.replace(/-/g,'')}` : generateId(date, amount, descStr)
+            let id = docto ? `bradesco_${docto.trim()}_${date.replace(/-/g,'')}` : generateId(date, amount, descStr)
+
+            if (seenIds.has(id)) {
+              const count = seenIds.get(id)! + 1
+              seenIds.set(id, count)
+              id = `${id}_dup${count}`
+            } else {
+              seenIds.set(id, 0)
+            }
 
             transactions.push({
               id,
