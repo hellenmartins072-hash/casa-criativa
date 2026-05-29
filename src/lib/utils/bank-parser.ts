@@ -112,9 +112,24 @@ function parseOFX(text: string): ParsedBankTransaction[] {
   return transactions
 }
 
+function cleanCSVText(text: string): string {
+  const lines = text.split(/\r?\n/)
+  // Find the first line that looks like a header (contains 'data' or 'date' and a delimiter)
+  let headerIndex = 0
+  for (let i = 0; i < lines.length; i++) {
+    const lower = lines[i].toLowerCase()
+    if ((lower.includes('data') || lower.includes('date')) && (lower.includes(';') || lower.includes(','))) {
+      headerIndex = i
+      break
+    }
+  }
+  return lines.slice(headerIndex).join('\n')
+}
+
 function parseCSV(text: string): Promise<ParsedBankTransaction[]> {
   return new Promise((resolve, reject) => {
-    Papa.parse(text, {
+    const cleanedText = cleanCSVText(text)
+    Papa.parse(cleanedText, {
       header: true,
       skipEmptyLines: true,
       complete: (results) => {
