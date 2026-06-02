@@ -438,3 +438,28 @@ export async function getResellerRanking() {
 
   return Object.values(ranking).sort((a, b) => b.total - a.total)
 }
+
+// Pedidos Entregues mas com Pagamento Pendente ou Parcial
+export async function getPendingDeliveredOrders() {
+  const { data: orders, error } = await supabase
+    .from('orders')
+    .select('id, order_number, total_amount, amount_paid, status, payment_status, created_at, clients(full_name, whatsapp), companies(business_name, phone)')
+    .eq('status', 'Entregue')
+    .in('payment_status', ['Pendente', 'Pago Parcial'])
+    .order('created_at', { ascending: false })
+
+  if (error || !orders) return []
+
+  return orders.map(o => ({
+    id: o.id,
+    orderNumber: o.order_number,
+    total: o.total_amount,
+    paid: o.amount_paid || 0,
+    pending: o.total_amount - (o.amount_paid || 0),
+    paymentStatus: o.payment_status,
+    date: o.created_at,
+    clientName: (o.clients as any)?.full_name || (o.companies as any)?.business_name || 'Desconhecido',
+    phone: (o.clients as any)?.whatsapp || (o.companies as any)?.phone || ''
+  }))
+}
+

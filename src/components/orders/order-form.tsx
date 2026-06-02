@@ -387,7 +387,7 @@ export function OrderForm({ initialData }: OrderFormProps) {
       const orderBalance = (finalFormData.total_amount || 0) - (finalFormData.amount_paid || 0);
       if (orderBalance <= 0 && finalFormData.payment_status === 'Pendente') {
         finalFormData.payment_status = 'Pago';
-      } else if (orderBalance > 0 && finalFormData.amount_paid > 0 && finalFormData.payment_status === 'Pendente') {
+      } else if (orderBalance > 0 && (finalFormData.amount_paid || 0) > 0 && finalFormData.payment_status === 'Pendente') {
         finalFormData.payment_status = 'Pago Parcial';
       }
 

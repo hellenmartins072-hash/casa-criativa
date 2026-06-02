@@ -89,6 +89,7 @@ export default function FinancePage() {
   )
 
   const contasAPagar = transactions.filter(t => t.type === 'Despesa' && t.status === 'Pendente')
+  const contasAReceber = transactions.filter(t => t.type === 'Receita' && t.status === 'Pendente')
 
   // --- FLUXO REAL ---
   const [fluxoAccountId, setFluxoAccountId] = useState<string>('all')
@@ -375,6 +376,14 @@ export default function FinancePage() {
               </span>
             )}
           </TabsTrigger>
+          <TabsTrigger value="contas-a-receber" className="relative">
+            Contas a Receber
+            {contasAReceber.length > 0 && (
+              <span className="ml-2 bg-green-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">
+                {contasAReceber.length}
+              </span>
+            )}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="resumo" className="space-y-6">
@@ -470,6 +479,74 @@ export default function FinancePage() {
                   </Table>
                 </div>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="contas-a-receber">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle>Contas a Receber</CardTitle>
+              <CardDescription>Acompanhe pagamentos de clientes que estão pendentes.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-md border overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Vencimento</TableHead>
+                      <TableHead>Descrição</TableHead>
+                      <TableHead>Categoria</TableHead>
+                      <TableHead className="text-right">Valor</TableHead>
+                      <TableHead className="text-center">Status</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {contasAReceber.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
+                          Nenhuma conta a receber pendente.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      contasAReceber.sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime()).map(t => {
+                        const isOverdue = new Date(t.due_date) < new Date() && t.status === 'Pendente'
+                        return (
+                          <TableRow key={t.id} className={isOverdue ? "bg-red-50/50" : ""}>
+                            <TableCell className="whitespace-nowrap flex items-center gap-2">
+                              {isOverdue && <AlertCircle className="w-4 h-4 text-red-500" />}
+                              <span className={isOverdue ? "text-red-600 font-bold" : ""}>
+                                {new Date(t.due_date).toLocaleDateString('pt-BR')}
+                              </span>
+                            </TableCell>
+                            <TableCell className="font-medium">{t.description}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{t.category}</Badge>
+                            </TableCell>
+                            <TableCell className="text-right font-bold text-green-600">
+                              R$ {Number(t.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Badge variant="secondary" className="bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200">
+                                Pendente
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right space-x-2">
+                              <Button variant="outline" size="sm" onClick={() => toggleStatus(t)}>
+                                Dar Baixa
+                              </Button>
+                              <Button variant="ghost" size="icon" onClick={() => handleDelete(t.id)}>
+                                <Trash2 className="w-4 h-4 text-red-400" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

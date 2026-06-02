@@ -179,6 +179,19 @@ export default function OrderPdfPage({ params }: { params: Promise<{ id: string 
               <span>TOTAL:</span>
               <span>R$ {Number(order.total_amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
             </div>
+            
+            {Number(order.amount_paid) > 0 && (
+              <div className="pt-2 mt-2 border-t border-gray-200">
+                <div className="flex justify-between text-green-600 font-semibold mb-1 text-base">
+                  <span>Valor Pago {order.entry_date ? `(em ${new Date(order.entry_date).toLocaleDateString('pt-BR')})` : ''}:</span>
+                  <span>R$ {Number(order.amount_paid).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="flex justify-between text-red-600 font-bold text-lg">
+                  <span>Restante a Pagar:</span>
+                  <span>R$ {Math.max(0, Number(order.total_amount) - Number(order.amount_paid)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

@@ -196,6 +196,21 @@ export async function createOrder(orderData: Partial<Order>, items: OrderItem[])
         order_id: orderId
       })
     }
+
+    const pendingAmount = payload.total_amount - amountToRegister;
+    if (pendingAmount > 0) {
+      await createTransaction({
+        type: 'Receita',
+        category: 'Vendas',
+        description: `Saldo Pendente Pedido #${newOrder[0].order_number}`,
+        amount: pendingAmount,
+        due_date: payload.deadline || new Date().toISOString().split('T')[0],
+        payment_date: null,
+        status: 'Pendente',
+        payment_method: payload.payment_method || 'Dinheiro',
+        order_id: orderId
+      })
+    }
   }
 
   // 4. Integração de Estoque Automática (se já nascer Aprovado)
@@ -290,6 +305,14 @@ export async function updateOrder(id: string, orderData: Partial<Order>, items: 
   }
 
   // 3. Integração Financeira Automática
+  // Deletar transações PENDENTES antigas desse pedido para evitar duplicidade
+  await supabase
+    .from('financial_transactions')
+    .delete()
+    .eq('order_id', id)
+    .eq('status', 'Pendente')
+    .eq('type', 'Receita')
+
   const { data: existingTx } = await supabase
     .from('financial_transactions')
     .select('amount, status')
@@ -314,6 +337,23 @@ export async function updateOrder(id: string, orderData: Partial<Order>, items: 
       due_date: new Date().toISOString().split('T')[0],
       payment_date: new Date().toISOString().split('T')[0],
       status: 'Pago',
+      payment_method: payload.payment_method || 'Dinheiro',
+      order_id: id
+    })
+  }
+
+  const newTotalPaid = totalPaidSoFar + amountToRegister;
+  const pendingAmount = payload.total_amount - newTotalPaid;
+
+  if (pendingAmount > 0) {
+    await createTransaction({
+      type: 'Receita',
+      category: 'Vendas',
+      description: `Saldo Pendente Pedido Atualizado`,
+      amount: pendingAmount,
+      due_date: payload.deadline || new Date().toISOString().split('T')[0],
+      payment_date: null,
+      status: 'Pendente',
       payment_method: payload.payment_method || 'Dinheiro',
       order_id: id
     })

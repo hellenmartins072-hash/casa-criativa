@@ -115,9 +115,26 @@ export function generateWhatsAppBudgetScript(order: any) {
     text += `\n🚚 Frete / Entrega: R$ ${Number(order.shipping_cost).toFixed(2).replace('.', ',')}`
   }
 
-  text += `\n\n*VALOR TOTAL: R$ ${total}*\n\n`
+  text += `\n\n*VALOR TOTAL: R$ ${total}*\n`
+  
+  if (Number(order.amount_paid) > 0) {
+    const amountPaid = Number(order.amount_paid).toFixed(2).replace('.', ',')
+    const remaining = Math.max(0, Number(order.total_amount) - Number(order.amount_paid)).toFixed(2).replace('.', ',')
+    
+    let dateText = ''
+    if (order.entry_date) {
+      // Usando formatação de data mais robusta para evitar problemas de fuso horário, mas considerando a string ISO YYYY-MM-DD
+      const dateParts = order.entry_date.split('T')[0].split('-')
+      if (dateParts.length === 3) {
+        dateText = ` (em ${dateParts[2]}/${dateParts[1]}/${dateParts[0]})`
+      }
+    }
+    
+    text += `\n💰 Valor pago${dateText}: R$ ${amountPaid}`
+    text += `\n⚠️ *Restante a pagar: R$ ${remaining}*\n`
+  }
 
-  text += `💳 *FORMAS DE PAGAMENTO:*\n`
+  text += `\n💳 *FORMAS DE PAGAMENTO:*\n`
   text += `• PIX (Chave: seucnpj@email.com)\n`
   text += `• Cartão (Consulte condições de parcelamento)\n\n`
 

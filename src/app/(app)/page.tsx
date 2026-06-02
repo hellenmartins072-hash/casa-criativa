@@ -14,7 +14,8 @@ import {
   getVIPSeasonalClients,
   getInactiveClients,
   getPendingFollowUps,
-  getResellerRanking
+  getResellerRanking,
+  getPendingDeliveredOrders
 } from "@/lib/api/analytics"
 import { getCurrentProfile } from "@/lib/api/profiles"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -30,7 +31,8 @@ export default function DashboardPage() {
     birthdays: [],
     vips: [],
     inactive: [],
-    followups: []
+    followups: [],
+    pendingDelivered: []
   })
   const [settings, setSettings] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -50,7 +52,8 @@ export default function DashboardPage() {
           inactive,
           resellerRankingData,
           followups,
-          profile
+          profile,
+          pendingDelivered
         ] = await Promise.all([
           getDashboardMetrics(),
           getClientRankingByValue(),
@@ -62,7 +65,8 @@ export default function DashboardPage() {
           getInactiveClients(60),
           getResellerRanking(),
           getPendingFollowUps(3),
-          getCurrentProfile()
+          getCurrentProfile(),
+          getPendingDeliveredOrders()
         ])
         
         if (profile?.role === 'reseller') {
@@ -71,7 +75,7 @@ export default function DashboardPage() {
         }
         
         setMetrics(data)
-        setAnalytics({ clientRanking, b2bRanking, resellerRanking: resellerRankingData, recurring, birthdays, vips, inactive, followups })
+        setAnalytics({ clientRanking, b2bRanking, resellerRanking: resellerRankingData, recurring, birthdays, vips, inactive, followups, pendingDelivered })
         setSettings(settingsData)
       } catch (error) {
         console.error('Failed to load metrics', error)
@@ -212,7 +216,7 @@ export default function DashboardPage() {
       {/* ALERTA DE AÇÕES DIÁRIAS (CRM Ativo) */}
       <div className="mt-8">
         <h3 className="text-xl font-bold text-[#5C3D8F] mb-4">Ações Diárias (CRM Ativo)</h3>
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           
           <Card className="shadow-sm border-l-4 border-l-orange-500">
             <CardHeader className="pb-2 bg-orange-50/50">
@@ -256,6 +260,33 @@ export default function DashboardPage() {
                   </div>
                 )) : (
                   <p className="text-sm text-muted-foreground text-center">Nenhum cliente inativo.</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-sm border-l-4 border-l-red-700">
+            <CardHeader className="pb-2 bg-red-50/50">
+              <CardTitle className="flex items-center text-red-800 text-base">
+                <AlertCircle className="h-5 w-5 mr-2" /> Inadimplência
+              </CardTitle>
+              <CardDescription>Produtos entregues com pagamento pendente</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-4 max-h-[200px] overflow-y-auto">
+              <div className="space-y-3">
+                {analytics.pendingDelivered?.length > 0 ? analytics.pendingDelivered.map((p: any) => (
+                  <div key={p.id} className="flex justify-between items-center text-sm border-b pb-2 last:border-0">
+                    <div>
+                      <span className="font-semibold text-red-900">{p.clientName}</span>
+                      <p className="text-xs text-muted-foreground">Pedido #{p.orderNumber}</p>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-bold text-red-700">R$ {p.pending.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
+                      <Badge variant="outline" className="text-[10px] h-4 px-1 border-red-200 text-red-600 bg-red-50">{p.paymentStatus}</Badge>
+                    </div>
+                  </div>
+                )) : (
+                  <p className="text-sm text-muted-foreground text-center">Nenhuma inadimplência.</p>
                 )}
               </div>
             </CardContent>

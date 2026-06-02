@@ -190,8 +190,21 @@ export default function OrdersPage() {
                             : (order.order_date ? new Date(order.order_date).toLocaleDateString('pt-BR') : (order.quote_date ? new Date(order.quote_date).toLocaleDateString('pt-BR') : new Date(order.created_at).toLocaleDateString('pt-BR')))
                           }
                         </TableCell>
-                        <TableCell className="font-semibold text-[#5C3D8F]">
-                          R$ {Number(order.total_amount || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        <TableCell>
+                          <div className="font-semibold text-[#5C3D8F]">
+                            R$ {Number(order.total_amount || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </div>
+                          {Number(order.amount_paid) > 0 && (
+                            <div className="text-xs mt-1">
+                              <span className="text-green-600 font-medium">Pago: R$ {Number(order.amount_paid || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                              {order.entry_date && <span className="text-gray-500 ml-1">({new Date(order.entry_date).toLocaleDateString('pt-BR')})</span>}
+                            </div>
+                          )}
+                          {Number(order.amount_paid) > 0 && (
+                            <div className="text-xs text-red-600 font-medium">
+                              Resto: R$ {Math.max(0, Number(order.total_amount) - Number(order.amount_paid)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </div>
+                          )}
                         </TableCell>
                         <TableCell>
                           <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(order.status)}`}>
