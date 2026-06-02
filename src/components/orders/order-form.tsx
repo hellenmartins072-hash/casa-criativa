@@ -683,7 +683,7 @@ export function OrderForm({ initialData }: OrderFormProps) {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Data Entrada (Ex: 50%)</Label>
+                  <Label>Data do Primeiro Pagamento (Sinal)</Label>
                   <Input 
                     type="date" 
                     name="entry_date" 
@@ -693,7 +693,7 @@ export function OrderForm({ initialData }: OrderFormProps) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Data Pagto Final</Label>
+                  <Label>Data do Pagamento Final</Label>
                   <Input 
                     type="date" 
                     name="final_payment_date" 

@@ -203,7 +203,7 @@ export default function OrderPdfPage({ params }: { params: Promise<{ id: string 
             {order.payment_method?.includes('Cartão') && order.credit_installments && (
               <p className="mb-2"><strong>Parcelamento:</strong> {order.credit_installments}x no Cartão</p>
             )}
-            {order.entry_date && <p className="mb-1"><strong>Data da Entrada:</strong> {new Date(order.entry_date).toLocaleDateString('pt-BR')} (50% ou conf. combinado)</p>}
+            {order.entry_date && <p className="mb-1"><strong>Primeiro Pagamento (Sinal):</strong> {new Date(order.entry_date).toLocaleDateString('pt-BR')} (50% ou conf. combinado)</p>}
             {order.final_payment_date && <p className="mb-2"><strong>Pagamento Final:</strong> {new Date(order.final_payment_date).toLocaleDateString('pt-BR')}</p>}
             
             {order.notes ? (

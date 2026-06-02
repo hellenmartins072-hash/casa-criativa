@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { DollarSign, ShoppingCart, Activity, ArrowUpRight, ArrowDownRight, Award, Gift, Star, Repeat, Building, Target, AlertCircle, Clock } from "lucide-react"
+import { DollarSign, ShoppingCart, Activity, ArrowUpRight, ArrowDownRight, ArrowRight, Award, Gift, Star, Repeat, Building, Target, AlertCircle, Clock } from "lucide-react"
 import { getDashboardMetrics } from "@/lib/api/finance"
 import { getSettings } from "@/lib/api/settings"
 import { 
@@ -275,14 +276,19 @@ export default function DashboardPage() {
             <CardContent className="pt-4 max-h-[200px] overflow-y-auto">
               <div className="space-y-3">
                 {analytics.pendingDelivered?.length > 0 ? analytics.pendingDelivered.map((p: any) => (
-                  <div key={p.id} className="flex justify-between items-center text-sm border-b pb-2 last:border-0">
+                  <div key={p.id} className="flex justify-between items-center text-sm border-b pb-2 last:border-0 group">
                     <div>
                       <span className="font-semibold text-red-900">{p.clientName}</span>
                       <p className="text-xs text-muted-foreground">Pedido #{p.orderNumber}</p>
                     </div>
-                    <div className="text-right">
-                      <div className="font-bold text-red-700">R$ {p.pending.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
-                      <Badge variant="outline" className="text-[10px] h-4 px-1 border-red-200 text-red-600 bg-red-50">{p.paymentStatus}</Badge>
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <div className="font-bold text-red-700">R$ {p.pending.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
+                        <Badge variant="outline" className="text-[10px] h-4 px-1 border-red-200 text-red-600 bg-red-50">{p.paymentStatus}</Badge>
+                      </div>
+                      <Link href={`/orders/${p.id}`} className="p-2 bg-red-50 hover:bg-red-100 rounded-md text-red-600 transition-colors opacity-0 group-hover:opacity-100" title="Editar / Receber">
+                        <ArrowRight className="h-4 w-4" />
+                      </Link>
                     </div>
                   </div>
                 )) : (
