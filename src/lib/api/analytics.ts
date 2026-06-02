@@ -443,7 +443,7 @@ export async function getResellerRanking() {
 export async function getPendingDeliveredOrders() {
   const { data: orders, error } = await supabase
     .from('orders')
-    .select('id, order_number, total_amount, amount_paid, status, payment_status, created_at, clients(full_name, whatsapp), companies(business_name, phone)')
+    .select('id, order_number, total_amount, amount_paid, status, payment_status, created_at, clients(full_name, whatsapp), companies(business_name, phone), resellers(full_name, phone)')
     .eq('status', 'Entregue')
     .in('payment_status', ['Pendente', 'Pago Parcial'])
     .order('created_at', { ascending: false })
@@ -458,8 +458,8 @@ export async function getPendingDeliveredOrders() {
     pending: o.total_amount - (o.amount_paid || 0),
     paymentStatus: o.payment_status,
     date: o.created_at,
-    clientName: (o.clients as any)?.full_name || (o.companies as any)?.business_name || 'Desconhecido',
-    phone: (o.clients as any)?.whatsapp || (o.companies as any)?.phone || ''
+    clientName: (o.clients as any)?.full_name || (o.companies as any)?.business_name || (o.resellers as any)?.full_name || 'Desconhecido',
+    phone: (o.clients as any)?.whatsapp || (o.companies as any)?.phone || (o.resellers as any)?.phone || ''
   }))
 }
 
