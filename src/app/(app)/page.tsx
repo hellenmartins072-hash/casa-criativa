@@ -270,7 +270,7 @@ export default function DashboardPage() {
               <CardTitle className="flex items-center text-red-800 text-base">
                 <AlertCircle className="h-5 w-5 mr-2" /> Inadimplência
               </CardTitle>
-              <CardDescription>Produtos entregues com pagamento pendente</CardDescription>
+              <CardDescription>Pedidos com pagamento pendente</CardDescription>
             </CardHeader>
             <CardContent className="pt-4 max-h-[200px] overflow-y-auto">
               <div className="space-y-3">
