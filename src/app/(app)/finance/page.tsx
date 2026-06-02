@@ -120,6 +120,14 @@ export default function FinancePage() {
   }
   const fluxoReal = calculateFluxoReal()
 
+  const fluxoTotals = fluxoReal.reduce((acc, tx) => {
+    if (tx.type === 'Receita') acc.entradas += Number(tx.amount)
+    else acc.saidas += Number(tx.amount)
+    return acc
+  }, { entradas: 0, saidas: 0 })
+
+  const fluxoSaldoLiquido = fluxoTotals.entradas - fluxoTotals.saidas
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
