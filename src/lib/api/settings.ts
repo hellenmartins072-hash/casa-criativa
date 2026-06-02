@@ -33,6 +33,8 @@ export type Settings = {
   followup_days?: number | null
   backup_email?: string | null
   resend_api_key?: string | null
+  contract_text?: string | null
+  contract_image_url?: string | null
 
   updated_at?: string
 }
@@ -68,6 +70,25 @@ export async function updateSettings(settings: Partial<Settings>) {
 export async function uploadLogo(file: File) {
   const fileExt = file.name.split('.').pop()
   const fileName = `logo_${Date.now()}.${fileExt}`
+
+  const { error: uploadError } = await supabase.storage
+    .from('logos')
+    .upload(fileName, file)
+
+  if (uploadError) {
+    throw uploadError
+  }
+
+  const { data: { publicUrl } } = supabase.storage
+    .from('logos')
+    .getPublicUrl(fileName)
+
+  return publicUrl
+}
+
+export async function uploadContractImage(file: File) {
+  const fileExt = file.name.split('.').pop()
+  const fileName = `contract_${Date.now()}.${fileExt}`
 
   const { error: uploadError } = await supabase.storage
     .from('logos')

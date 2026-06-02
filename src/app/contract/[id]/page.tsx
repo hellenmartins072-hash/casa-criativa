@@ -208,12 +208,17 @@ export default function ContractPage() {
 
           <section>
             <h3 className="font-bold text-gray-900 mb-2 uppercase text-xs tracking-wider">5. Disposições Gerais</h3>
-            <p>
-              As partes declaram estar de acordo com todas as cláusulas e condições estabelecidas neste instrumento. 
-              Em caso de desistência por parte do CONTRATANTE após o início da confecção, os valores já pagos a título de sinal não serão reembolsados, 
-              servindo para cobrir custos de material e hora técnica.
+            <p className="whitespace-pre-line">
+              {settings?.contract_text || 'As partes declaram estar de acordo com todas as cláusulas e condições estabelecidas neste instrumento. Em caso de desistência por parte do CONTRATANTE após o início da confecção, os valores já pagos a título de sinal não serão reembolsados, servindo para cobrir custos de material e hora técnica.'}
             </p>
           </section>
+
+          {settings?.contract_image_url && (
+            <div className="flex justify-center mt-8 pt-8 border-t">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={settings.contract_image_url} alt="Assinatura / Carimbo do Contrato" className="max-h-32 object-contain" />
+            </div>
+          )}
 
         </CardContent>
 

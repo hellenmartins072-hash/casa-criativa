@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { Loader2, Plus, Building, Percent, Edit, Trash2, Download, DatabaseBackup, Store, Palette, MessageCircle } from "lucide-react"
+import { Loader2, Plus, Building, Percent, Edit, Trash2, Download, DatabaseBackup, Store, Palette, MessageCircle, FileSignature } from "lucide-react"
 import {
   Table,
   TableBody,
@@ -31,6 +31,7 @@ import {
   getSettings, 
   updateSettings, 
   uploadLogo,
+  uploadContractImage,
   getFees, 
   createFee, 
   updateFee, 
@@ -52,6 +53,9 @@ export default function SettingsPage() {
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
   
+  const [contractImageFile, setContractImageFile] = useState<File | null>(null)
+  const [contractImagePreview, setContractImagePreview] = useState<string | null>(null)
+  
   const [settings, setSettingsData] = useState<Partial<Settings>>({
     business_name: '',
     document_number: '',
@@ -64,7 +68,9 @@ export default function SettingsPage() {
     wa_template_production: '',
     wa_template_ready: '',
     wa_template_delivered: '',
-    monthly_revenue_goal: 0
+    monthly_revenue_goal: 0,
+    contract_text: '',
+    contract_image_url: ''
   })
   
   const [fees, setFees] = useState<PaymentFee[]>([])
@@ -97,6 +103,14 @@ export default function SettingsPage() {
     }
   }
 
+  const handleContractImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0]
+      setContractImageFile(file)
+      setContractImagePreview(URL.createObjectURL(file))
+    }
+  }
+
   useEffect(() => {
     loadData()
   }, [])
@@ -115,6 +129,19 @@ export default function SettingsPage() {
           setSettingsData(prev => ({ ...prev, logo_url: logoUrl }))
         } catch (uploadErr) {
           alert("Erro ao fazer upload do logotipo.")
+          setSavingSettings(false)
+          return
+        }
+      }
+
+      // Se houver imagem do contrato, faz o upload
+      if (contractImageFile) {
+        try {
+          const contractUrl = await uploadContractImage(contractImageFile)
+          finalSettings.contract_image_url = contractUrl
+          setSettingsData(prev => ({ ...prev, contract_image_url: contractUrl }))
+        } catch (uploadErr) {
+          alert("Erro ao fazer upload da imagem do contrato.")
           setSavingSettings(false)
           return
         }
@@ -263,6 +290,9 @@ export default function SettingsPage() {
           </TabsTrigger>
           <TabsTrigger value="whatsapp" className="flex items-center gap-2 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-0">
             <MessageCircle className="h-4 w-4" /> WhatsApp Oficial
+          </TabsTrigger>
+          <TabsTrigger value="contract" className="flex items-center gap-2 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-0">
+            <FileSignature className="h-4 w-4" /> Contrato
           </TabsTrigger>
           <TabsTrigger value="fees" className="flex items-center gap-2 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-0">
             <Percent className="h-4 w-4" /> Taxas e Plataformas
@@ -607,6 +637,68 @@ export default function SettingsPage() {
                 <Button type="submit" className="bg-[#5C3D8F] hover:bg-[#4a3173] text-white" disabled={savingSettings}>
                   {savingSettings && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Salvar Configurações
+                </Button>
+              </CardFooter>
+            </form>
+          </Card>
+        </TabsContent>
+
+        {/* TAB CONTRATO */}
+        <TabsContent value="contract">
+          <Card>
+            <CardHeader>
+              <CardTitle>Configuração do Contrato</CardTitle>
+              <CardDescription>
+                Personalize os termos e adicione uma imagem (como assinatura, carimbo ou cabeçalho) para o contrato de prestação de serviços.
+              </CardDescription>
+            </CardHeader>
+            <form onSubmit={handleSaveSettings}>
+              <CardContent className="space-y-6">
+                
+                <div className="space-y-2">
+                  <Label htmlFor="contract_text">Disposições Gerais / Termos do Contrato</Label>
+                  <textarea 
+                    id="contract_text"
+                    value={settings.contract_text || ''}
+                    onChange={e => setSettingsData({...settings, contract_text: e.target.value})}
+                    placeholder="Ex: As partes declaram estar de acordo com todas as cláusulas..."
+                    className="w-full min-h-[200px] flex rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                  <p className="text-xs text-muted-foreground">Este texto aparecerá na seção de Disposições Gerais para o cliente assinar.</p>
+                </div>
+
+                <div className="space-y-2 pt-4 border-t">
+                  <Label className="block mb-2">Imagem / Assinatura / Carimbo do Contrato (Opcional)</Label>
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 w-full md:w-1/2 flex flex-col items-center justify-center hover:bg-gray-50 cursor-pointer transition-colors relative">
+                    {contractImagePreview || settings.contract_image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img 
+                        src={contractImagePreview || settings.contract_image_url || ''} 
+                        alt="Imagem do Contrato" 
+                        className="max-h-40 object-contain"
+                      />
+                    ) : (
+                      <div className="text-center text-muted-foreground flex flex-col items-center py-4">
+                        <Plus className="w-8 h-8 mb-1 opacity-50" />
+                        <span className="text-sm">Fazer upload de imagem</span>
+                        <span className="text-xs mt-1">Recomendado formato horizontal (PNG/JPG)</span>
+                      </div>
+                    )}
+                    <input 
+                      type="file" 
+                      accept="image/png, image/jpeg"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      onChange={handleContractImageUpload}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">Esta imagem será exibida ao final do documento do contrato.</p>
+                </div>
+
+              </CardContent>
+              <CardFooter className="flex justify-end bg-gray-50 border-t py-4 rounded-b-lg">
+                <Button type="submit" className="bg-[#5C3D8F] hover:bg-[#4a3173] text-white" disabled={savingSettings}>
+                  {savingSettings && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Salvar Contrato
                 </Button>
               </CardFooter>
             </form>
