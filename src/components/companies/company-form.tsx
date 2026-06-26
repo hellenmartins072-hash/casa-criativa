@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Company, createCompany, updateCompany, deleteCompany, createCompanyContact, updateCompanyContact, deleteCompanyContact, type CompanyContact } from '@/lib/api/companies'
+import { getStores, type Store } from '@/lib/api/stores'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -23,6 +24,19 @@ export function CompanyForm({ initialData, isModal, onSuccess, onCancel }: Compa
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [stores, setStores] = useState<Store[]>([])
+
+  useEffect(() => {
+    async function fetchStores() {
+      try {
+        const data = await getStores()
+        if (data) setStores(data)
+      } catch (err) {
+        console.error('Error fetching stores:', err)
+      }
+    }
+    fetchStores()
+  }, [])
 
   const [contacts, setContacts] = useState<Partial<CompanyContact>[]>(initialData?.contacts || [])
   const [deletedContacts, setDeletedContacts] = useState<string[]>([])
@@ -38,7 +52,9 @@ export function CompanyForm({ initialData, isModal, onSuccess, onCancel }: Compa
       payment_methods: [],
       boleto_only: false,
       boleto_days: 30,
-        birth_date: ''
+      boleto_days: 30,
+      birth_date: '',
+      store_ids: []
     }
   )
 
@@ -52,6 +68,15 @@ export function CompanyForm({ initialData, isModal, onSuccess, onCancel }: Compa
 
   const handleCheckboxChange = (checked: boolean) => {
     setFormData({ ...formData, boleto_only: checked })
+  }
+
+  const handleStoreToggle = (storeId: string) => {
+    const currentStores = formData.store_ids || []
+    if (currentStores.includes(storeId)) {
+      setFormData({ ...formData, store_ids: currentStores.filter(id => id !== storeId) })
+    } else {
+      setFormData({ ...formData, store_ids: [...currentStores, storeId] })
+    }
   }
 
   const handleAddContact = () => {
@@ -233,6 +258,31 @@ export function CompanyForm({ initialData, isModal, onSuccess, onCancel }: Compa
                 value={formData.address || ''}
                 onChange={handleChange}
               />
+            </div>
+
+            <div className="space-y-2 md:col-span-2 pt-2 pb-2">
+              <Label className="text-base font-semibold">Lojas / Nichos Vinculados (Segmento)</Label>
+              {stores.length === 0 ? (
+                <p className="text-sm text-muted-foreground mt-2">Nenhuma loja cadastrada.</p>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
+                  {stores.map(store => (
+                    <div key={store.id} className="flex items-center space-x-2 bg-muted/20 p-2 rounded-md border">
+                      <Checkbox
+                        id={`store-${store.id}`}
+                        checked={(formData.store_ids || []).includes(store.id)}
+                        onCheckedChange={() => handleStoreToggle(store.id)}
+                      />
+                      <Label 
+                        htmlFor={`store-${store.id}`} 
+                        className="text-sm font-medium leading-none cursor-pointer"
+                      >
+                        {store.name}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="space-y-2 md:col-span-2">

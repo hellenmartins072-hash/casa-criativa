@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Plus, Search, MoreHorizontal, Building2, UserX } from 'lucide-react'
 import { getCompanies, deleteCompany, type Company } from '@/lib/api/companies'
+import { getStores, type Store } from '@/lib/api/stores'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -29,13 +30,18 @@ import { Badge } from '@/components/ui/badge'
 export default function CompaniesPage() {
   const router = useRouter()
   const [companies, setCompanies] = useState<Company[]>([])
+  const [stores, setStores] = useState<Store[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
     async function loadCompanies() {
       try {
-        const data = await getCompanies()
+        const [data, storesData] = await Promise.all([
+          getCompanies(),
+          getStores()
+        ])
+        if (storesData) setStores(storesData)
         if (data) {
           const sortedByDate = [...data].sort((a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime())
           const withCodes = sortedByDate.map((c, index) => ({
@@ -129,6 +135,7 @@ export default function CompaniesPage() {
                     <TableHead>Empresa</TableHead>
                     <TableHead>CNPJ</TableHead>
                     <TableHead>Telefone</TableHead>
+                    <TableHead>Segmento</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
@@ -136,7 +143,7 @@ export default function CompaniesPage() {
                 <TableBody>
                   {filteredCompanies.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="h-24 text-center">
+                      <TableCell colSpan={7} className="h-24 text-center">
                         Nenhuma empresa encontrada.
                       </TableCell>
                     </TableRow>
@@ -156,6 +163,18 @@ export default function CompaniesPage() {
                         </TableCell>
                         <TableCell>{company.cnpj || '-'}</TableCell>
                         <TableCell>{company.phone || '-'}</TableCell>
+                        <TableCell>
+                          {company.store_ids && company.store_ids.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {company.store_ids.map(id => {
+                                const store = stores.find(s => s.id === id)
+                                return store ? <Badge key={id} variant="secondary" className="text-[10px]">{store.name}</Badge> : null
+                              })}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
                         <TableCell>
                           <Badge variant={company.status === 'Despedido' ? 'destructive' : 'default'} className={company.status === 'Ativo' ? 'bg-green-500 hover:bg-green-600' : ''}>
                             {company.status === 'Ativo' ? <Building2 className="mr-1 h-3 w-3" /> : <UserX className="mr-1 h-3 w-3" />}
