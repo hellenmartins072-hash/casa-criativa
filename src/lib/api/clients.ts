@@ -27,12 +27,19 @@ export type Client = {
   notes?: string | null
   internal_alert?: string | null
   created_at?: string
+  orders?: {
+    id: string
+    order_number: number
+    created_at: string
+    total_amount: number
+    status: string
+  }[]
 }
 
 export async function getClients() {
   const { data, error } = await supabase
     .from('clients')
-    .select(`*`)
+    .select(`*, orders(id, order_number, created_at, total_amount, status)`)
     .order('created_at', { ascending: false })
 
   if (error) {
@@ -45,7 +52,7 @@ export async function getClients() {
 export async function getClient(id: string) {
   const { data, error } = await supabase
     .from('clients')
-    .select('*')
+    .select(`*, orders(id, order_number, created_at, total_amount, status)`)
     .eq('id', id)
     .single()
 
@@ -57,6 +64,19 @@ export async function getClient(id: string) {
 }
 
 export async function createClient(client: Partial<Client>) {
+  if (client.full_name && client.whatsapp) {
+    const { data: existing } = await supabase
+      .from('clients')
+      .select('id')
+      .eq('full_name', client.full_name)
+      .eq('whatsapp', client.whatsapp)
+      .limit(1)
+
+    if (existing && existing.length > 0) {
+      throw new Error('Já existe um cliente cadastrado com este mesmo nome e telefone.')
+    }
+  }
+
   const payload = { ...client }
   if (payload.birth_date === '') payload.birth_date = null
 
@@ -73,6 +93,20 @@ export async function createClient(client: Partial<Client>) {
 }
 
 export async function updateClient(id: string, client: Partial<Client>) {
+  if (client.full_name && client.whatsapp) {
+    const { data: existing } = await supabase
+      .from('clients')
+      .select('id')
+      .eq('full_name', client.full_name)
+      .eq('whatsapp', client.whatsapp)
+      .neq('id', id)
+      .limit(1)
+
+    if (existing && existing.length > 0) {
+      throw new Error('Já existe outro cliente cadastrado com este mesmo nome e telefone.')
+    }
+  }
+
   const payload = { ...client }
   if (payload.birth_date === '') payload.birth_date = null
 

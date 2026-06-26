@@ -105,6 +105,10 @@ export function OrderForm({ initialData }: OrderFormProps) {
   const [couponCode, setCouponCode] = useState('')
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null)
 
+  // WhatsApp Modal
+  const [isWhatsappModalOpen, setIsWhatsappModalOpen] = useState(false)
+  const [whatsappScript, setWhatsappScript] = useState('')
+
   useEffect(() => {
     async function loadSupportData() {
       try {
@@ -148,7 +152,17 @@ export function OrderForm({ initialData }: OrderFormProps) {
     const creditFee = Number(formData.credit_fee || 0)
     
     const grandTotal = itemsTotal - discount + shipping + creditFee
-    setFormData(prev => ({ ...prev, total_amount: grandTotal > 0 ? grandTotal : 0 }))
+    const safeTotal = grandTotal > 0 ? grandTotal : 0
+
+    setFormData(prev => {
+      const updates: any = { total_amount: safeTotal }
+      // Se houver data de pagamento final, o pedido é considerado totalmente pago, então o valor pago deve acompanhar o total
+      if (prev.final_payment_date) {
+        updates.amount_paid = safeTotal
+        updates.payment_status = 'Pago'
+      }
+      return { ...prev, ...updates }
+    })
   }, [items, formData.discount_amount, formData.shipping_cost, formData.credit_fee])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -698,7 +712,19 @@ export function OrderForm({ initialData }: OrderFormProps) {
                     type="date" 
                     name="final_payment_date" 
                     value={formData.final_payment_date ? formData.final_payment_date.substring(0, 10) : ''} 
-                    onChange={handleChange}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val) {
+                        setFormData(prev => ({
+                          ...prev, 
+                          final_payment_date: val, 
+                          amount_paid: prev.total_amount, 
+                          payment_status: 'Pago'
+                        }));
+                      } else {
+                        handleChange(e);
+                      }
+                    }}
                     className="bg-white"
                   />
                 </div>
@@ -1067,26 +1093,56 @@ export function OrderForm({ initialData }: OrderFormProps) {
                 >
                   <FileSignature className="mr-2 h-4 w-4" /> Link do Contrato
                 </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="text-green-600 border-green-200 hover:bg-green-50"
-                  onClick={() => {
-                    // Montar um "mock" temporário com as infos carregadas pra passar pro gerador
-                    const mockOrder = {
-                      ...formData,
-                      id: initialData.id,
-                      items,
-                      clients: clients.find(c => c.id === formData.client_id),
-                      companies: companies.find(c => c.id === formData.company_id)
-                    }
-                    const text = generateWhatsAppBudgetScript(mockOrder)
-                    navigator.clipboard.writeText(text)
-                    alert('Texto do orçamento copiado! Agora é só colar no WhatsApp.')
-                  }}
-                >
-                  <Copy className="mr-2 h-4 w-4" /> Copiar Orçamento p/ WhatsApp
-                </Button>
+                <Dialog open={isWhatsappModalOpen} onOpenChange={setIsWhatsappModalOpen}>
+                  <DialogTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="text-green-600 border-green-200 hover:bg-green-50"
+                      onClick={() => {
+                        const mockOrder = {
+                          ...formData,
+                          id: initialData.id,
+                          items,
+                          clients: clients.find(c => c.id === formData.client_id),
+                          companies: companies.find(c => c.id === formData.company_id)
+                        }
+                        const text = generateWhatsAppBudgetScript(mockOrder)
+                        setWhatsappScript(text)
+                      }}
+                    >
+                      <Copy className="mr-2 h-4 w-4" /> Copiar Orçamento p/ WhatsApp
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle>Mensagem do Orçamento</DialogTitle>
+                      <DialogDescription>
+                        Edite o texto do orçamento livremente (área para escrita de dados) antes de copiar para o WhatsApp.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                      <Textarea 
+                        value={whatsappScript}
+                        onChange={(e) => setWhatsappScript(e.target.value)}
+                        className="min-h-[300px] font-mono text-sm"
+                      />
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setIsWhatsappModalOpen(false)}>Cancelar</Button>
+                      <Button 
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                        onClick={() => {
+                          navigator.clipboard.writeText(whatsappScript)
+                          alert('Texto copiado com sucesso! Agora é só colar no WhatsApp.')
+                          setIsWhatsappModalOpen(false)
+                        }}
+                      >
+                        Copiar Texto
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               </>
             )}
           </div>

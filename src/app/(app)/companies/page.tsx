@@ -36,7 +36,17 @@ export default function CompaniesPage() {
     async function loadCompanies() {
       try {
         const data = await getCompanies()
-        setCompanies(data || [])
+        if (data) {
+          const sortedByDate = [...data].sort((a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime())
+          const withCodes = sortedByDate.map((c, index) => ({
+            ...c,
+            company_code: `B2B-${String(index + 1).padStart(3, '0')}`
+          }))
+          const sortedAlphabetically = withCodes.sort((a, b) => a.business_name.localeCompare(b.business_name))
+          setCompanies(sortedAlphabetically as any)
+        } else {
+          setCompanies([])
+        }
       } catch (error) {
         console.error('Error loading companies:', error)
       } finally {
@@ -49,7 +59,8 @@ export default function CompaniesPage() {
   const filteredCompanies = companies.filter(company => 
     company.business_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     company.cnpj?.includes(searchQuery) ||
-    company.trading_name?.toLowerCase().includes(searchQuery.toLowerCase())
+    company.trading_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (company as any).company_code?.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   const handleDelete = async (id: string) => {
@@ -93,7 +104,7 @@ export default function CompaniesPage() {
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
-                placeholder="Buscar por razão social, nome fantasia ou CNPJ..."
+                placeholder="Buscar por código, razão social, fantasia ou CNPJ..."
                 className="pl-8"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -114,6 +125,7 @@ export default function CompaniesPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-20">Código</TableHead>
                     <TableHead>Empresa</TableHead>
                     <TableHead>CNPJ</TableHead>
                     <TableHead>Telefone</TableHead>
@@ -131,6 +143,9 @@ export default function CompaniesPage() {
                   ) : (
                     filteredCompanies.map((company) => (
                       <TableRow key={company.id}>
+                        <TableCell className="font-mono text-xs text-muted-foreground">
+                          {(company as any).company_code}
+                        </TableCell>
                         <TableCell className="font-medium">
                           <div className="flex flex-col">
                             <span>{company.business_name}</span>

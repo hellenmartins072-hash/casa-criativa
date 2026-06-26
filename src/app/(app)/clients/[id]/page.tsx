@@ -4,6 +4,9 @@ import { useEffect, useState, use } from 'react'
 import { ClientForm } from '@/components/clients/client-form'
 import { getClient, type Client } from '@/lib/api/clients'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
 
 export default function EditClientPage({ params }: { params: Promise<{ id: string }> }) {
   const [client, setClient] = useState<Client | null>(null)
@@ -47,6 +50,48 @@ export default function EditClientPage({ params }: { params: Promise<{ id: strin
         <h2 className="text-3xl font-bold tracking-tight text-[#5C3D8F]">Editar Cliente</h2>
       </div>
       <ClientForm initialData={client} />
+
+      {client.orders && client.orders.length > 0 && (
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle>Histórico de Pedidos</CardTitle>
+            <CardDescription>
+              Lista completa de pedidos realizados por este cliente.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nº</TableHead>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Valor Total</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {client.orders
+                    .slice()
+                    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                    .map((order) => (
+                      <TableRow key={order.id}>
+                        <TableCell className="font-medium">#{order.order_number}</TableCell>
+                        <TableCell>{new Date(order.created_at).toLocaleDateString('pt-BR')}</TableCell>
+                        <TableCell>
+                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(order.total_amount)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{order.status}</Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

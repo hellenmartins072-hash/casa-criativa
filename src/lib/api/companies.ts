@@ -79,6 +79,19 @@ export async function getCompany(id: string) {
 }
 
 export async function createCompany(company: Partial<Company>) {
+  if (company.business_name && company.phone) {
+    const { data: existing } = await supabase
+      .from('companies')
+      .select('id')
+      .eq('business_name', company.business_name)
+      .eq('phone', company.phone)
+      .limit(1)
+
+    if (existing && existing.length > 0) {
+      throw new Error('Já existe uma empresa cadastrada com esta mesma razão social e telefone.')
+    }
+  }
+
   const payload = { ...company }
   if (payload.birth_date === '') payload.birth_date = null
 
@@ -95,6 +108,20 @@ export async function createCompany(company: Partial<Company>) {
 }
 
 export async function updateCompany(id: string, company: Partial<Company>) {
+  if (company.business_name && company.phone) {
+    const { data: existing } = await supabase
+      .from('companies')
+      .select('id')
+      .eq('business_name', company.business_name)
+      .eq('phone', company.phone)
+      .neq('id', id)
+      .limit(1)
+
+    if (existing && existing.length > 0) {
+      throw new Error('Já existe outra empresa cadastrada com esta mesma razão social e telefone.')
+    }
+  }
+
   const payload = { ...company }
   if (payload.birth_date === '') payload.birth_date = null
 

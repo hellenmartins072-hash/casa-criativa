@@ -25,18 +25,36 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Badge } from '@/components/ui/badge'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 export default function ClientsPage() {
   const router = useRouter()
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedClientForOrders, setSelectedClientForOrders] = useState<Client | null>(null)
 
   useEffect(() => {
     async function loadClients() {
       try {
         const data = await getClients()
-        setClients(data || [])
+        if (data) {
+          const sortedByDate = [...data].sort((a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime())
+          const withCodes = sortedByDate.map((c, index) => ({
+            ...c,
+            client_code: `CLI-${String(index + 1).padStart(3, '0')}`
+          }))
+          const sortedAlphabetically = withCodes.sort((a, b) => a.full_name.localeCompare(b.full_name))
+          setClients(sortedAlphabetically as any)
+        } else {
+          setClients([])
+        }
       } catch (error) {
         console.error('Error loading clients:', error)
       } finally {
@@ -60,7 +78,8 @@ export default function ClientsPage() {
   const filteredClients = clients.filter(client => 
     client.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     client.whatsapp.includes(searchQuery) ||
-    client.email?.toLowerCase().includes(searchQuery.toLowerCase())
+    client.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (client as any).client_code?.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   return (
@@ -92,7 +111,7 @@ export default function ClientsPage() {
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
-                placeholder="Buscar por nome, email ou WhatsApp..."
+                placeholder="Buscar por código, nome, email ou WhatsApp..."
                 className="pl-8"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -113,9 +132,11 @@ export default function ClientsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-20">Código</TableHead>
                     <TableHead>Nome</TableHead>
                     <TableHead>Contato</TableHead>
                     <TableHead>Tipo</TableHead>
+                    <TableHead>Pedidos</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
@@ -123,13 +144,16 @@ export default function ClientsPage() {
                 <TableBody>
                   {filteredClients.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="h-24 text-center">
+                      <TableCell colSpan={6} className="h-24 text-center">
                         Nenhum cliente encontrado.
                       </TableCell>
                     </TableRow>
                   ) : (
                     filteredClients.map((client) => (
                       <TableRow key={client.id}>
+                        <TableCell className="font-mono text-xs text-muted-foreground">
+                          {(client as any).client_code}
+                        </TableCell>
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
                             {client.full_name}
@@ -148,6 +172,22 @@ export default function ClientsPage() {
                           </Badge>
                         </TableCell>
                         <TableCell>
+                          {client.orders && client.orders.length > 0 ? (
+                            <div className="flex flex-col text-xs text-muted-foreground gap-1">
+                              <div>
+                                <span className="font-medium text-foreground mr-1">Primeiro:</span>
+                                {new Date(Math.min(...client.orders.map(o => new Date(o.created_at).getTime()))).toLocaleDateString('pt-BR')}
+                              </div>
+                              <div>
+                                <span className="font-medium text-foreground mr-1">Último:</span>
+                                {new Date(Math.max(...client.orders.map(o => new Date(o.created_at).getTime()))).toLocaleDateString('pt-BR')}
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground italic">Sem pedidos</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
                           <Badge variant={client.status === 'Despedido' ? 'destructive' : 'default'} className={client.status === 'Ativo' ? 'bg-green-500 hover:bg-green-600' : ''}>
                             {client.status === 'Ativo' ? <UserCheck className="mr-1 h-3 w-3" /> : <UserX className="mr-1 h-3 w-3" />}
                             {client.status || 'Ativo'}
@@ -164,6 +204,11 @@ export default function ClientsPage() {
                               <DropdownMenuItem className="cursor-pointer" onClick={() => router.push(`/clients/${client.id}`)}>
                                 Editar / Visualizar
                               </DropdownMenuItem>
+                              {client.orders && client.orders.length > 0 && (
+                                <DropdownMenuItem className="cursor-pointer" onClick={() => setSelectedClientForOrders(client)}>
+                                  Ver Pedidos Detalhados
+                                </DropdownMenuItem>
+                              )}
                               <DropdownMenuSeparator />
                               <DropdownMenuItem className="text-destructive cursor-pointer" onClick={() => handleDelete(client.id)}>
                                 Excluir Cliente
@@ -180,6 +225,45 @@ export default function ClientsPage() {
           )}
         </CardContent>
       </Card>
+      <Dialog open={!!selectedClientForOrders} onOpenChange={(open) => !open && setSelectedClientForOrders(null)}>
+        <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Histórico de Pedidos - {selectedClientForOrders?.full_name}</DialogTitle>
+            <DialogDescription>
+              Lista completa de pedidos do cliente com valores e status.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 border rounded-md">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nº</TableHead>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Valor Total</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {selectedClientForOrders?.orders
+                  ?.slice()
+                  .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                  .map((order) => (
+                    <TableRow key={order.id}>
+                      <TableCell className="font-medium">#{order.order_number}</TableCell>
+                      <TableCell>{new Date(order.created_at).toLocaleDateString('pt-BR')}</TableCell>
+                      <TableCell>
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(order.total_amount)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{order.status}</Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+              </TableBody>
+            </Table>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -94,11 +94,17 @@ export async function deleteTransaction(id: string) {
 }
 
 export async function getDashboardMetrics() {
-  // Receita Total (Soma de todos os pedidos não cancelados)
+  const now = new Date()
+  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999).toISOString()
+
+  // Receita Total (Soma de todos os pedidos não cancelados do mês atual)
   const { data: orders, error: ordersErr } = await supabase
     .from('orders')
     .select('total_amount, status')
     .neq('status', 'Cancelado')
+    .gte('created_at', firstDay)
+    .lte('created_at', lastDay)
     
   let totalRevenue = 0
   let orderCount = 0
@@ -125,11 +131,13 @@ export async function getDashboardMetrics() {
     .order('created_at', { ascending: false })
     .limit(5)
 
-  // Lucro/Despesas (Opcional, pegando do financeiro)
+  // Lucro/Despesas do Mês Atual
   const { data: transactions } = await supabase
     .from('financial_transactions')
-    .select('type, amount, status')
+    .select('type, amount, status, payment_date')
     .eq('status', 'Pago')
+    .gte('payment_date', firstDay)
+    .lte('payment_date', lastDay)
     
   let totalExpenses = 0
   let totalPaidRevenue = 0

@@ -32,6 +32,19 @@ export async function getResellers() {
 }
 
 export async function createReseller(reseller: Partial<Reseller>) {
+  if (reseller.full_name && reseller.whatsapp) {
+    const { data: existing } = await supabase
+      .from('resellers')
+      .select('id')
+      .eq('full_name', reseller.full_name)
+      .eq('whatsapp', reseller.whatsapp)
+      .limit(1)
+
+    if (existing && existing.length > 0) {
+      throw new Error('Já existe um revendedor cadastrado com este mesmo nome e WhatsApp.')
+    }
+  }
+
   const payload = { ...reseller }
   if (payload.birth_date === '') payload.birth_date = null
 
@@ -48,6 +61,20 @@ export async function createReseller(reseller: Partial<Reseller>) {
 }
 
 export async function updateReseller(id: string, reseller: Partial<Reseller>) {
+  if (reseller.full_name && reseller.whatsapp) {
+    const { data: existing } = await supabase
+      .from('resellers')
+      .select('id')
+      .eq('full_name', reseller.full_name)
+      .eq('whatsapp', reseller.whatsapp)
+      .neq('id', id)
+      .limit(1)
+
+    if (existing && existing.length > 0) {
+      throw new Error('Já existe outro revendedor cadastrado com este mesmo nome e WhatsApp.')
+    }
+  }
+
   const payload = { ...reseller }
   if (payload.birth_date === '') payload.birth_date = null
 
