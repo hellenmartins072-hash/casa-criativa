@@ -24,7 +24,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { Order, getOrders, updateOrderStatus } from '@/lib/api/orders'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, AlertCircle, Calendar, MoreVertical } from 'lucide-react'
+import { Loader2, AlertCircle, Calendar, MoreVertical, Eye } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import {
   DropdownMenu,
@@ -43,6 +43,7 @@ const COLUMNS = [
 
 // --- Componente do Card (Draggable) ---
 function SortableOrderCard({ order, onStatusChange }: { order: Order, onStatusChange?: (id: string, status: string) => void }) {
+  const router = useRouter()
   const {
     attributes,
     listeners,
@@ -84,7 +85,18 @@ function SortableOrderCard({ order, onStatusChange }: { order: Order, onStatusCh
       <Card className={`overflow-hidden border-l-4 ${isLate ? 'border-l-red-500 bg-red-50' : isWarning ? 'border-l-orange-400 bg-orange-50' : 'border-l-[#5C3D8F] bg-white'} shadow-sm hover:shadow-md transition-shadow`}>
         <CardContent className="p-3">
           <div className="flex justify-between items-start mb-2">
-            <span className="text-xs font-bold text-gray-500">#{order.order_number}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-gray-500">#{order.order_number}</span>
+              <button 
+                type="button"
+                className="text-gray-400 hover:text-[#5C3D8F] transition-colors"
+                title="Ver Detalhes do Pedido"
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={() => router.push(`/orders/${order.id}`)}
+              >
+                <Eye className="w-4 h-4" />
+              </button>
+            </div>
             <div className="flex items-center gap-1">
                {isLate && <AlertCircle className="w-4 h-4 text-red-500" />}
                {isWarning && <AlertCircle className="w-4 h-4 text-orange-400" />}
@@ -97,6 +109,10 @@ function SortableOrderCard({ order, onStatusChange }: { order: Order, onStatusCh
                        <MoreVertical className="w-4 h-4 text-gray-500" />
                      </DropdownMenuTrigger>
                      <DropdownMenuContent align="end">
+                       <DropdownMenuItem onClick={() => router.push(`/orders/${order.id}`)}>
+                         <Eye className="w-4 h-4 mr-2" />
+                         Ver Detalhes do Pedido
+                       </DropdownMenuItem>
                        {COLUMNS.map(c => (
                          <DropdownMenuItem 
                            key={c.id} 
