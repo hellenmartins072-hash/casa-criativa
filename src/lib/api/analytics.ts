@@ -192,10 +192,19 @@ export async function getVIPSeasonalClients() {
 }
 
 // 6. Resumo Financeiro do Mês Atual (Receitas Pagas, Despesas Pagas, Lucro)
-export async function getMonthlyFinancialSummary() {
-  const date = new Date();
-  const firstDay = new Date(date.getFullYear(), date.getMonth(), 1).toISOString();
-  const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0).toISOString();
+export async function getMonthlyFinancialSummary(monthDate?: string) {
+  let firstDay: string;
+  let lastDay: string;
+
+  if (monthDate) {
+    const [year, month] = monthDate.split('-');
+    firstDay = new Date(parseInt(year), parseInt(month) - 1, 1).toISOString();
+    lastDay = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59).toISOString();
+  } else {
+    const date = new Date();
+    firstDay = new Date(date.getFullYear(), date.getMonth(), 1).toISOString();
+    lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59).toISOString();
+  }
 
   const { data: txs } = await supabase
     .from('financial_transactions')
@@ -218,18 +227,30 @@ export async function getMonthlyFinancialSummary() {
 }
 
 // 7. A Receber vs A Pagar (Geral)
-export async function getPendingFinancials() {
-  const { data: receivables } = await supabase
+export async function getPendingFinancials(monthDate?: string) {
+  let queryReceivables = supabase
     .from('financial_transactions')
     .select('amount')
     .eq('type', 'Receita')
     .eq('status', 'Pendente');
 
-  const { data: payables } = await supabase
+  let queryPayables = supabase
     .from('financial_transactions')
     .select('amount')
     .eq('type', 'Despesa')
     .eq('status', 'Pendente');
+
+  if (monthDate) {
+    const [year, month] = monthDate.split('-');
+    const firstDay = new Date(parseInt(year), parseInt(month) - 1, 1).toISOString();
+    const lastDay = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59).toISOString();
+    
+    queryReceivables = queryReceivables.gte('due_date', firstDay).lte('due_date', lastDay);
+    queryPayables = queryPayables.gte('due_date', firstDay).lte('due_date', lastDay);
+  }
+
+  const { data: receivables } = await queryReceivables;
+  const { data: payables } = await queryPayables;
 
   const totalReceivable = (receivables || []).reduce((sum, tx) => sum + (Number(tx.amount) || 0), 0);
   const totalPayable = (payables || []).reduce((sum, tx) => sum + (Number(tx.amount) || 0), 0);

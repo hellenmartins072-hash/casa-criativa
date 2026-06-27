@@ -4,9 +4,12 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowDownRight, ArrowUpRight, TrendingUp, Package } from 'lucide-react'
 import { getMonthlyFinancialSummary, getPendingFinancials, getTopSellingProducts, getMostProfitableProducts } from '@/lib/api/analytics'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 export function FinanceDashboard() {
   const [loading, setLoading] = useState(true)
+  const [dashboardMonth, setDashboardMonth] = useState<string>(new Date().toISOString().slice(0, 7))
   const [data, setData] = useState({
     monthly: { revenues: 0, expenses: 0, profit: 0 },
     pending: { receivable: 0, payable: 0 },
@@ -16,10 +19,11 @@ export function FinanceDashboard() {
 
   useEffect(() => {
     async function loadData() {
+      setLoading(true)
       try {
         const [monthly, pending, top, profit] = await Promise.all([
-          getMonthlyFinancialSummary(),
-          getPendingFinancials(),
+          getMonthlyFinancialSummary(dashboardMonth),
+          getPendingFinancials(dashboardMonth),
           getTopSellingProducts(),
           getMostProfitableProducts()
         ])
@@ -38,7 +42,7 @@ export function FinanceDashboard() {
     }
     
     loadData()
-  }, [])
+  }, [dashboardMonth])
 
   if (loading) {
     return <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
@@ -58,6 +62,18 @@ export function FinanceDashboard() {
 
   return (
     <div className="space-y-6 mb-8">
+      <div className="flex justify-between items-end">
+        <div>
+          <Label className="mb-2 block text-sm">Resumo Financeiro de:</Label>
+          <Input 
+            type="month" 
+            value={dashboardMonth} 
+            onChange={(e) => setDashboardMonth(e.target.value)} 
+            className="w-[200px]"
+          />
+        </div>
+      </div>
+
       {/* Top Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
@@ -89,7 +105,7 @@ export function FinanceDashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">A Receber (Futuro)</CardTitle>
+            <CardTitle className="text-sm font-medium">A Receber (No Mês)</CardTitle>
             <ArrowUpRight className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
@@ -97,14 +113,14 @@ export function FinanceDashboard() {
               R$ {data.pending.receivable.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Faturamentos pendentes
+              Faturamentos pendentes deste mês
             </p>
           </CardContent>
         </Card>
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">A Pagar (Futuro)</CardTitle>
+            <CardTitle className="text-sm font-medium">A Pagar (No Mês)</CardTitle>
             <ArrowDownRight className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
@@ -112,7 +128,7 @@ export function FinanceDashboard() {
               R$ {data.pending.payable.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Despesas pendentes
+              Despesas pendentes deste mês
             </p>
           </CardContent>
         </Card>
