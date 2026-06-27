@@ -103,6 +103,31 @@ export async function getOrder(id: string) {
   } as Order
 }
 
+export async function getLatestOrderForClient(clientId: string) {
+  const { data: order, error: orderError } = await supabase
+    .from('orders')
+    .select('*')
+    .eq('client_id', clientId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single()
+
+  if (orderError) {
+    if (orderError.code === 'PGRST116') return null // No rows found
+    console.error('Error fetching latest order:', orderError)
+    return null
+  }
+
+  const { data: items, error: itemsError } = await supabase
+    .from('order_items')
+    .select('product_name, quantity')
+    .eq('order_id', order.id)
+
+  if (itemsError) return null
+
+  return { ...order, items } as Order
+}
+
 export async function createOrder(orderData: Partial<Order>, items: OrderItem[]) {
   // 1. Cria o pedido
   const payload: any = {

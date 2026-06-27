@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { ClientInteraction, getClientInteractions, getCompanyInteractions, createInteraction, deleteInteraction } from '@/lib/api/crm'
+import { getLatestOrderForClient } from '@/lib/api/orders'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -74,6 +75,21 @@ export function ClientTimeline({ clientId, companyId }: ClientTimelineProps) {
     }
   }
 
+  const handleOpenReturnModal = async () => {
+    setIsReturnModalOpen(true)
+    if (clientId && !returnNotes) {
+      try {
+        const lastOrder = await getLatestOrderForClient(clientId)
+        if (lastOrder && lastOrder.items && lastOrder.items.length > 0) {
+          const itemsStr = lastOrder.items.map(i => `${i.quantity}x ${i.product_name}`).join(', ')
+          setReturnNotes(`Último pedido: ${itemsStr}\n(Total: R$ ${lastOrder.total_amount})\n\n`)
+        }
+      } catch (err) {
+        console.error('Failed to fetch last order', err)
+      }
+    }
+  }
+
   const handleScheduleReturn = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!returnEventName || !returnEventDate) return
@@ -139,7 +155,7 @@ export function ClientTimeline({ clientId, companyId }: ClientTimelineProps) {
         </div>
         <Dialog open={isReturnModalOpen} onOpenChange={setIsReturnModalOpen}>
           <DialogTrigger asChild>
-            <Button variant="outline" size="sm" className="text-pink-600 border-pink-200 hover:bg-pink-50">
+            <Button variant="outline" size="sm" className="text-pink-600 border-pink-200 hover:bg-pink-50" onClick={handleOpenReturnModal}>
               <Clock className="w-4 h-4 mr-2" />
               Programar Retorno Anual
             </Button>
