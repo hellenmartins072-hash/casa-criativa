@@ -46,7 +46,8 @@ export default function FinancePage() {
     is_recurring: false,
     current_installment: 1,
     total_installments: 1,
-    recurrence_period: 'Mensal'
+    recurrence_period: 'Mensal',
+    recurrence_end_date: ''
   })
 
   const [accounts, setAccounts] = useState<BankAccount[]>([])
@@ -93,6 +94,7 @@ export default function FinancePage() {
 
   // --- FLUXO REAL ---
   const [fluxoAccountId, setFluxoAccountId] = useState<string>('all')
+  const [fluxoMonth, setFluxoMonth] = useState<string>(new Date().toISOString().slice(0, 7))
 
   const calculateFluxoReal = () => {
     let flowTxs = transactions.filter(t => t.status === 'Pago')
@@ -100,7 +102,7 @@ export default function FinancePage() {
       flowTxs = flowTxs.filter(t => t.bank_account_id === fluxoAccountId)
     }
     // Sort chronologically
-    flowTxs = flowTxs.sort((a, b) => new Date(a.payment_date || a.due_date).getTime() - new Date(b.payment_date || b.due_date).getTime())
+    flowTxs = flowTxs.sort((a, b) => new Date(a.payment_date || a.due_date || '').getTime() - new Date(b.payment_date || b.due_date || '').getTime())
 
     let runningBalance = 0;
     if (fluxoAccountId !== 'all') {
@@ -120,13 +122,18 @@ export default function FinancePage() {
   }
   const fluxoReal = calculateFluxoReal()
 
-  const fluxoTotals = fluxoReal.reduce((acc, tx) => {
+  const filteredFluxoReal = fluxoMonth === 'all' 
+    ? fluxoReal 
+    : fluxoReal.filter(t => (t.payment_date || t.due_date || '').startsWith(fluxoMonth))
+
+  const fluxoTotals = filteredFluxoReal.reduce((acc, tx) => {
     if (tx.type === 'Receita') acc.entradas += Number(tx.amount)
     else acc.saidas += Number(tx.amount)
     return acc
   }, { entradas: 0, saidas: 0 })
 
   const fluxoSaldoLiquido = fluxoTotals.entradas - fluxoTotals.saidas
+  const fluxoSaldoFinal = filteredFluxoReal.length > 0 ? filteredFluxoReal[filteredFluxoReal.length - 1].runningBalance : 0
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -144,13 +151,14 @@ export default function FinancePage() {
         is_recurring: formData.is_recurring,
         current_installment: formData.current_installment,
         total_installments: formData.total_installments,
-        recurrence_period: formData.recurrence_period
+        recurrence_period: formData.recurrence_period,
+        recurrence_end_date: formData.is_recurring && formData.recurrence_end_date ? formData.recurrence_end_date : null
       })
       setIsModalOpen(false)
       loadData()
       // reset form
       setFormData({
-        type: 'Despesa', category: 'Fornecedor', description: '', amount: '', due_date: new Date().toISOString().split('T')[0], status: 'Pago', payment_method: 'PIX', bank_account_id: accounts.length > 0 ? accounts[0].id : '', is_recurring: false, current_installment: 1, total_installments: 1, recurrence_period: 'Mensal'
+        type: 'Despesa', category: 'Fornecedor', description: '', amount: '', due_date: new Date().toISOString().split('T')[0], status: 'Pago', payment_method: 'PIX', bank_account_id: accounts.length > 0 ? accounts[0].id : '', is_recurring: false, current_installment: 1, total_installments: 1, recurrence_period: 'Mensal', recurrence_end_date: ''
       })
     } catch (err) {
       alert("Erro ao salvar transação.")
@@ -167,7 +175,45 @@ export default function FinancePage() {
   const toggleStatus = async (t: FinancialTransaction) => {
     const newStatus = t.status === 'Pago' ? 'Pendente' : 'Pago'
     const newPaymentDate = newStatus === 'Pago' ? new Date().toISOString().split('T')[0] : null
-    await updateTransaction(t.id, { status: newStatus, payment_date: newPaymentDate })
+    
+    if (newStatus === 'Pago' && t.is_recurring) {
+      const currentDue = new Date(t.due_date || new Date())
+      const nextDue = new Date(currentDue)
+      
+      if (t.recurrence_period === 'Anual') {
+        nextDue.setFullYear(nextDue.getFullYear() + 1)
+      } else {
+        nextDue.setMonth(nextDue.getMonth() + 1)
+      }
+      
+      const nextDueStr = nextDue.toISOString().split('T')[0]
+      
+      let shouldClone = true
+      if (t.recurrence_end_date && nextDueStr > t.recurrence_end_date) {
+        shouldClone = false
+      }
+      
+      if (shouldClone) {
+        await createTransaction({
+          type: t.type,
+          category: t.category,
+          description: t.description,
+          amount: t.amount,
+          payment_method: t.payment_method,
+          bank_account_id: t.bank_account_id,
+          is_recurring: true,
+          recurrence_period: t.recurrence_period,
+          recurrence_end_date: t.recurrence_end_date,
+          status: 'Pendente',
+          payment_date: null,
+          due_date: nextDueStr
+        })
+      }
+      // Set current to false so it doesn't clone again if untoggled
+      await updateTransaction(t.id, { status: newStatus, payment_date: newPaymentDate, is_recurring: false })
+    } else {
+      await updateTransaction(t.id, { status: newStatus, payment_date: newPaymentDate })
+    }
     loadData()
   }
 
@@ -364,6 +410,32 @@ export default function FinancePage() {
                     ))}
                   </select>
                 </div>
+                <div className="flex items-center space-x-2 pt-2">
+                  <Checkbox 
+                    id="recurring" 
+                    checked={formData.is_recurring} 
+                    onCheckedChange={(c) => setFormData({ ...formData, is_recurring: c === true })} 
+                  />
+                  <Label htmlFor="recurring" className="text-sm font-medium">Repetir Lançamento</Label>
+                </div>
+                {formData.is_recurring && (
+                  <div className="grid grid-cols-2 gap-4 p-3 bg-muted/50 rounded-md">
+                    <div className="space-y-2">
+                      <Label>Frequência</Label>
+                      <select
+                        value={formData.recurrence_period} onChange={e => setFormData({ ...formData, recurrence_period: e.target.value })}
+                        className="flex h-9 w-full rounded-md border border-input bg-white px-3 py-1 shadow-sm"
+                      >
+                        <option value="Mensal">Mensalmente</option>
+                        <option value="Anual">Anualmente</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Data Final (Opcional)</Label>
+                      <Input type="date" value={formData.recurrence_end_date} onChange={e => setFormData({ ...formData, recurrence_end_date: e.target.value })} title="Deixe em branco para repetir sem data limite" />
+                    </div>
+                  </div>
+                )}
                 <Button type="submit" className="w-full bg-[#5C3D8F] hover:bg-[#4a3173] text-white mt-4">Salvar</Button>
               </form>
             </DialogContent>
@@ -632,7 +704,11 @@ export default function FinancePage() {
             <CardHeader className="pb-3">
               <CardTitle>Fluxo Real (Conciliação)</CardTitle>
               <CardDescription>Acompanhe o saldo cronológico das suas contas (Apenas transações pagas).</CardDescription>
-              <div className="flex items-center pt-4">
+              <div className="flex flex-col sm:flex-row items-end gap-4 pt-4">
+                <div className="w-full max-w-[200px]">
+                  <Label className="mb-2 block text-sm">Mês/Ano</Label>
+                  <Input type="month" value={fluxoMonth} onChange={e => setFluxoMonth(e.target.value)} />
+                </div>
                 <div className="w-full max-w-sm">
                   <Label className="mb-2 block text-sm">Filtrar por Conta Bancária</Label>
                   <select
@@ -645,6 +721,11 @@ export default function FinancePage() {
                       <option key={acc.id} value={acc.id}>{acc.name} ({acc.type})</option>
                     ))}
                   </select>
+                </div>
+                <div className="ml-auto w-full max-w-[150px]">
+                  <Button variant="outline" className="w-full" onClick={() => setFluxoMonth('all')}>
+                    Ver Todo o Período
+                  </Button>
                 </div>
               </div>
             </CardHeader>
@@ -661,14 +742,14 @@ export default function FinancePage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {fluxoReal.length === 0 ? (
+                    {filteredFluxoReal.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                          Nenhuma transação paga encontrada para esta conta.
+                          Nenhuma transação paga encontrada para este período.
                         </TableCell>
                       </TableRow>
                     ) : (
-                      fluxoReal.map((tx) => (
+                      filteredFluxoReal.map((tx) => (
                         <TableRow key={`fluxo-${tx.id}`}>
                           <TableCell className="whitespace-nowrap font-medium text-gray-600">
                             {new Date(tx.payment_date || tx.due_date).toLocaleDateString('pt-BR')}
@@ -705,8 +786,8 @@ export default function FinancePage() {
                       <TableCell className="text-right text-red-700 font-bold">
                         R$ {fluxoTotals.saidas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </TableCell>
-                      <TableCell className={`text-right font-bold ${fluxoSaldoLiquido >= 0 ? 'text-blue-700' : 'text-red-700'}`}>
-                        R$ {fluxoSaldoLiquido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      <TableCell className={`text-right font-bold ${fluxoSaldoFinal >= 0 ? 'text-blue-700' : 'text-red-700'}`}>
+                        R$ {fluxoSaldoFinal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </TableCell>
                     </TableRow>
                   </TableFooter>

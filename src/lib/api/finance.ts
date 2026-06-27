@@ -30,6 +30,7 @@ export type FinancialTransaction = {
   current_installment?: number
   total_installments?: number
   recurrence_period?: string
+  recurrence_end_date?: string | null
   bank_transaction_id?: string | null
   store_id?: string | null
   client_id?: string | null
