@@ -463,3 +463,20 @@ export async function getPendingDeliveredOrders() {
   }))
 }
 
+export async function getUpcomingReturns() {
+  const { data, error } = await supabase
+    .from('client_interactions')
+    .select(`
+      *,
+      clients(full_name, whatsapp),
+      companies(business_name, phone)
+    `)
+    .eq('interaction_type', 'Retorno Programado')
+    .order('interaction_date', { ascending: true })
+    .limit(10)
+
+  if (error) return []
+  return data
+}
+
+

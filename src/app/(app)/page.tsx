@@ -16,7 +16,8 @@ import {
   getInactiveClients,
   getPendingFollowUps,
   getResellerRanking,
-  getPendingDeliveredOrders
+  getPendingDeliveredOrders,
+  getUpcomingReturns
 } from "@/lib/api/analytics"
 import { getCurrentProfile } from "@/lib/api/profiles"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -33,7 +34,8 @@ export default function DashboardPage() {
     vips: [],
     inactive: [],
     followups: [],
-    pendingDelivered: []
+    pendingDelivered: [],
+    upcomingReturns: []
   })
   const [settings, setSettings] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -67,7 +69,8 @@ export default function DashboardPage() {
           getResellerRanking(),
           getPendingFollowUps(3),
           getCurrentProfile(),
-          getPendingDeliveredOrders()
+          getPendingDeliveredOrders(),
+          getUpcomingReturns()
         ])
         
         if (profile?.role === 'reseller') {
@@ -76,7 +79,7 @@ export default function DashboardPage() {
         }
         
         setMetrics(data)
-        setAnalytics({ clientRanking, b2bRanking, resellerRanking: resellerRankingData, recurring, birthdays, vips, inactive, followups, pendingDelivered })
+        setAnalytics({ clientRanking, b2bRanking, resellerRanking: resellerRankingData, recurring, birthdays, vips, inactive, followups, pendingDelivered, upcomingReturns: upcomingReturnsData })
         setSettings(settingsData)
       } catch (error) {
         console.error('Failed to load metrics', error)
@@ -217,8 +220,34 @@ export default function DashboardPage() {
       {/* ALERTA DE AÇÕES DIÁRIAS (CRM Ativo) */}
       <div className="mt-8">
         <h3 className="text-xl font-bold text-[#5C3D8F] mb-4">Ações Diárias (CRM Ativo)</h3>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           
+          <Card className="shadow-sm border-l-4 border-l-pink-500">
+            <CardHeader className="pb-2 bg-pink-50/50">
+              <CardTitle className="flex items-center text-pink-700 text-base">
+                <Clock className="h-5 w-5 mr-2" /> Retornos / Lembretes
+              </CardTitle>
+              <CardDescription>Clientes com evento anual próximo</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-4 max-h-[200px] overflow-y-auto">
+              <div className="space-y-3">
+                {analytics.upcomingReturns?.length > 0 ? analytics.upcomingReturns.map((r: any) => (
+                  <div key={r.id} className="flex justify-between items-center text-sm border-b pb-2 last:border-0 group">
+                    <div>
+                      <span className="font-semibold text-pink-900">{r.clients?.full_name || r.companies?.business_name}</span>
+                      <p className="text-xs text-muted-foreground truncate max-w-[150px]">{r.notes.split('|')[0].replace('[RETORNO PROGRAMADO] Evento:', '')}</p>
+                    </div>
+                    <Link href={`/returns`} className="p-2 bg-pink-50 hover:bg-pink-100 rounded-md text-pink-600 transition-colors opacity-0 group-hover:opacity-100" title="Ver Detalhes">
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </div>
+                )) : (
+                  <p className="text-sm text-muted-foreground text-center">Nenhum lembrete para os próximos dias.</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
           <Card className="shadow-sm border-l-4 border-l-orange-500">
             <CardHeader className="pb-2 bg-orange-50/50">
               <CardTitle className="flex items-center text-orange-700 text-base">

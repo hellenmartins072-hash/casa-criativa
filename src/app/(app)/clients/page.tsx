@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Plus, Search, MoreHorizontal, UserCheck, UserX, Star } from 'lucide-react'
 import { getClients, deleteClient, type Client } from '@/lib/api/clients'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import ReturnsPage from '@/app/(app)/returns/page'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -100,7 +102,14 @@ export default function ClientsPage() {
         </div>
       </div>
 
-      <Card>
+      <Tabs defaultValue="list">
+        <TabsList className="mb-4">
+          <TabsTrigger value="list">Todos os Clientes</TabsTrigger>
+          <TabsTrigger value="returns">Retornos Programados</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="list" className="m-0">
+          <Card>
         <CardHeader>
           <CardTitle>Todos os Clientes</CardTitle>
           <CardDescription>
@@ -225,6 +234,13 @@ export default function ClientsPage() {
           )}
         </CardContent>
       </Card>
+      </TabsContent>
+      
+      <TabsContent value="returns" className="m-0 -mx-4 md:-mx-8 -mt-8">
+        <ReturnsPage />
+      </TabsContent>
+    </Tabs>
+
       <Dialog open={!!selectedClientForOrders} onOpenChange={(open) => !open && setSelectedClientForOrders(null)}>
         <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
           <DialogHeader>

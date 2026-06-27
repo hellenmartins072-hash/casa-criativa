@@ -8,6 +8,8 @@ export interface ClientInteraction {
   notes: string
   interaction_date: string
   created_at?: string
+  clients?: { full_name: string; whatsapp: string } | null
+  companies?: { business_name: string; phone: string } | null
 }
 
 export async function getClientInteractions(clientId: string) {
@@ -62,4 +64,36 @@ export async function deleteInteraction(id: string) {
     throw error
   }
   return true
+}
+
+export async function updateInteraction(id: string, interaction: Partial<ClientInteraction>) {
+  const { data, error } = await supabase
+    .from('client_interactions')
+    .update(interaction)
+    .eq('id', id)
+    .select()
+
+  if (error) {
+    console.error('Error updating interaction:', error)
+    throw error
+  }
+  return data ? (data[0] as ClientInteraction) : null
+}
+
+export async function getAllReturns() {
+  const { data, error } = await supabase
+    .from('client_interactions')
+    .select(`
+      *,
+      clients(full_name, whatsapp),
+      companies(business_name, phone)
+    `)
+    .in('interaction_type', ['Retorno Programado', 'Retorno Concluído'])
+    .order('interaction_date', { ascending: true })
+
+  if (error) {
+    console.error('Error fetching returns:', error)
+    throw error
+  }
+  return data as ClientInteraction[]
 }
