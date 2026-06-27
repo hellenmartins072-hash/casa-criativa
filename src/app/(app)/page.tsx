@@ -56,7 +56,8 @@ export default function DashboardPage() {
           resellerRankingData,
           followups,
           profile,
-          pendingDelivered
+          pendingDelivered,
+          upcomingReturnsData
         ] = await Promise.all([
           getDashboardMetrics(),
           getClientRankingByValue(),
