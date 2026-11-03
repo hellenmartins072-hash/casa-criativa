@@ -13,7 +13,37 @@ export type OrderItem = {
   unit_price: number
   total_price: number
   notes?: string | null
+  image_urls?: string[]
   created_at?: string
+}
+
+export function parseItemNotesAndImages(notes?: string | null, rawImageUrls?: string[] | null): { notes: string; image_urls: string[] } {
+  let cleanNotes = notes || ''
+  let imageUrls: string[] = Array.isArray(rawImageUrls) ? rawImageUrls.filter(Boolean) : []
+
+  // Suporte a fallback embutido em notes
+  const commentMatch = cleanNotes.match(/<!--ITEM_IMAGES:(.*?)-->/)
+  if (commentMatch) {
+    try {
+      const parsed = JSON.parse(commentMatch[1])
+      if (Array.isArray(parsed) && imageUrls.length === 0) {
+        imageUrls = parsed
+      }
+    } catch (e) {
+      console.warn('Erro ao decodificar imagens embutidas:', e)
+    }
+    cleanNotes = cleanNotes.replace(/<!--ITEM_IMAGES:.*?-->/g, '').trim()
+  }
+
+  return { notes: cleanNotes, image_urls: imageUrls }
+}
+
+export function encodeItemNotesWithImages(notes?: string | null, imageUrls?: string[] | null): string {
+  const baseNotes = (notes || '').replace(/<!--ITEM_IMAGES:.*?-->/g, '').trim()
+  if (!imageUrls || imageUrls.length === 0) {
+    return baseNotes
+  }
+  return `${baseNotes}\n<!--ITEM_IMAGES:${JSON.stringify(imageUrls)}-->`.trim()
 }
 
 export type Order = {
@@ -97,9 +127,18 @@ export async function getOrder(id: string) {
 
   if (itemsError) throw itemsError
 
+  const formattedItems = (items || []).map((item: any) => {
+    const parsed = parseItemNotesAndImages(item.notes, item.image_urls)
+    return {
+      ...item,
+      notes: parsed.notes,
+      image_urls: parsed.image_urls
+    }
+  })
+
   return {
     ...order,
-    items
+    items: formattedItems
   } as Order
 }
 
@@ -190,7 +229,8 @@ export async function createOrder(orderData: Partial<Order>, items: OrderItem[])
       quantity: item.quantity,
       unit_price: item.unit_price,
       total_price: item.total_price,
-      notes: item.notes || ''
+      notes: item.notes || '',
+      image_urls: item.image_urls || []
     }))
 
     const { error: itemsError } = await supabase
@@ -198,8 +238,28 @@ export async function createOrder(orderData: Partial<Order>, items: OrderItem[])
       .insert(itemsData)
 
     if (itemsError) {
-      console.error('Error inserting order items:', itemsError)
-      throw itemsError
+      if (itemsError.code === '42703' || itemsError.message?.includes('image_urls')) {
+        const fallbackItems = items.map(item => ({
+          order_id: orderId,
+          product_id: item.product_id || null,
+          product_name: item.product_name,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          total_price: item.total_price,
+          notes: encodeItemNotesWithImages(item.notes, item.image_urls)
+        }))
+        const { error: fallbackError } = await supabase
+          .from('order_items')
+          .insert(fallbackItems)
+
+        if (fallbackError) {
+          console.error('Error inserting order items (fallback):', fallbackError)
+          throw fallbackError
+        }
+      } else {
+        console.error('Error inserting order items:', itemsError)
+        throw itemsError
+      }
     }
   }
 
@@ -319,14 +379,34 @@ export async function updateOrder(id: string, orderData: Partial<Order>, items: 
       quantity: item.quantity,
       unit_price: item.unit_price,
       total_price: item.total_price,
-      notes: item.notes || ''
+      notes: item.notes || '',
+      image_urls: item.image_urls || []
     }))
 
     const { error: insError } = await supabase
       .from('order_items')
       .insert(itemsData)
 
-    if (insError) throw insError
+    if (insError) {
+      if (insError.code === '42703' || insError.message?.includes('image_urls')) {
+        const fallbackItems = items.map(item => ({
+          order_id: id,
+          product_id: item.product_id || null,
+          product_name: item.product_name,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          total_price: item.total_price,
+          notes: encodeItemNotesWithImages(item.notes, item.image_urls)
+        }))
+        const { error: fallbackError } = await supabase
+          .from('order_items')
+          .insert(fallbackItems)
+
+        if (fallbackError) throw fallbackError
+      } else {
+        throw insError
+      }
+    }
   }
 
   // 3. Integração Financeira Automática

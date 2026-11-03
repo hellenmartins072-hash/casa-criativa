@@ -12,6 +12,7 @@ import { getActiveProducts, type Product } from '@/lib/api/products'
 import { getOrderChecklist, createChecklistStep, toggleChecklistStep, deleteChecklistStep, getOrderReworks, registerRework, deleteRework, type OrderChecklist, type OrderRework } from '@/lib/api/operations'
 import { generateWhatsAppBudgetScript, getCouponByCode } from '@/lib/api/marketing'
 import { FileUpload } from './file-upload'
+import { ItemImageUploader } from './item-image-uploader'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -249,7 +250,7 @@ export function OrderForm({ initialData }: OrderFormProps) {
 
   // --- Funções de Itens ---
   const addItem = () => {
-    setItems([...items, { product_id: null, product_name: '', quantity: 1, unit_price: 0, total_price: 0, notes: '' }])
+    setItems([...items, { product_id: null, product_name: '', quantity: 1, unit_price: 0, total_price: 0, notes: '', image_urls: [] }])
   }
 
   const removeItem = (index: number) => {
@@ -815,6 +816,12 @@ export function OrderForm({ initialData }: OrderFormProps) {
                             className="mt-2 text-xs"
                             value={item.notes || ''}
                             onChange={(e) => updateItem(index, 'notes', e.target.value)}
+                          />
+                          <ItemImageUploader
+                            orderId={initialData?.id}
+                            images={item.image_urls || []}
+                            onChange={(urls) => updateItem(index, 'image_urls', urls)}
+                            productName={item.product_name || `Item ${index + 1}`}
                           />
                         </td>
                         <td className="p-2 align-top">

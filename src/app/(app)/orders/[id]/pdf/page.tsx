@@ -136,7 +136,32 @@ export default function OrderPdfPage({ params }: { params: Promise<{ id: string 
                   <td className="p-3 font-medium align-top">{item.quantity}x</td>
                   <td className="p-3 align-top">
                     <p className="font-bold text-gray-800">{item.product_name}</p>
-                    {item.notes && <p className="text-gray-500 text-xs mt-1 italic">{item.notes}</p>}
+                    {item.notes && <p className="text-gray-500 text-xs mt-1 italic whitespace-pre-wrap">{item.notes}</p>}
+                    
+                    {item.image_urls && item.image_urls.length > 0 && (
+                      <div className="flex flex-wrap gap-2.5 mt-2.5 pt-2 border-t border-gray-100">
+                        {item.image_urls.map((imgUrl, imgIdx) => (
+                          <div
+                            key={imgIdx}
+                            className="flex flex-col items-center border border-gray-200 rounded-md bg-gray-50/70 p-1 shadow-2xs"
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={imgUrl}
+                              alt={`${item.product_name} - Foto ${imgIdx + 1}`}
+                              className="h-20 w-auto max-w-[130px] object-contain rounded"
+                              crossOrigin="anonymous"
+                              loading="eager"
+                            />
+                            {item.image_urls!.length > 1 && (
+                              <span className="text-[9px] text-gray-400 font-mono mt-0.5">
+                                Foto {imgIdx + 1}
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </td>
                   <td className="p-3 text-right align-top">
                     R$ {Number(item.unit_price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
@@ -253,6 +278,8 @@ export default function OrderPdfPage({ params }: { params: Promise<{ id: string 
           .print\\:hidden { display: none !important; }
           .print\\:border-none { border: none !important; }
           .print\\:p-0 { padding: 0 !important; }
+          tr { page-break-inside: avoid; break-inside: avoid; }
+          img { max-width: 100% !important; }
         }
       `}} />
     </div>
