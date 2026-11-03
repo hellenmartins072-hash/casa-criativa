@@ -74,7 +74,7 @@ export default async function ResellerOrders() {
                   </td>
                   <td className="px-6 py-4 text-center">
                     <Button variant="ghost" size="icon" asChild title="Ver Detalhes">
-                       <Link href={`/orders/${order.id}/pdf`} target="_blank">
+                       <Link href={`/orcamento/${order.id}/pdf`} target="_blank">
                          <FileText className="h-4 w-4 text-gray-500 hover:text-[#5C3D8F]" />
                        </Link>
                     </Button>

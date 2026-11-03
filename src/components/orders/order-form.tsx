@@ -466,7 +466,7 @@ export function OrderForm({ initialData }: OrderFormProps) {
         </div>
         {initialData && (
           <div className="flex items-center gap-2">
-             <Button variant="outline" onClick={() => window.open(`/orders/${initialData.id}/pdf`, '_blank')}>
+             <Button variant="outline" onClick={() => window.open(`/orcamento/${initialData.id}/pdf`, '_blank')}>
                 <Printer className="mr-2 h-4 w-4" /> PDF
              </Button>
              <Badge className="text-lg py-1 px-4">{formData.status}</Badge>

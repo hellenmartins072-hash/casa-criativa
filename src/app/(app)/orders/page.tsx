@@ -222,7 +222,7 @@ export default function OrdersPage() {
                               <DropdownMenuItem className="cursor-pointer" onClick={() => router.push(`/orders/${order.id}`)}>
                                 Editar / Visualizar
                               </DropdownMenuItem>
-                              <DropdownMenuItem className="cursor-pointer" onClick={() => window.open(`/orders/${order.id}/pdf`, '_blank')}>
+                              <DropdownMenuItem className="cursor-pointer" onClick={() => window.open(`/orcamento/${order.id}/pdf`, '_blank')}>
                                 Gerar PDF
                               </DropdownMenuItem>
                               <DropdownMenuItem className="cursor-pointer" onClick={() => window.open(`/orders/${order.id}/receipt`, '_blank')}>
